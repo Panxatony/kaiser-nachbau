@@ -27,6 +27,11 @@ const PLATZ = {
   TIROL:       [0.70, 0.83]
 };
 
+// Namen von Mitspielern gehen in SVG-Text; maskieren, siehe esc() in app.js.
+const esc = wert => String(wert ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
 const BREITE = 620, HOEHE = 400;
 const punkt = name => {
   const p = PLATZ[name] || [0.5, 0.5];
@@ -82,11 +87,11 @@ export function reichskarteSvg(reich, eigene, spieler = []) {
     if (s) klassen.push('besetzt');
     if (s && s.tot) klassen.push('herrenlos');
     const beschriftung = s
-      ? `<text class="fuerst" x="${x.toFixed(1)}" y="${(y + 26).toFixed(1)}">${s.titel} ${s.name}</text>`
+      ? `<text class="fuerst" x="${x.toFixed(1)}" y="${(y + 26).toFixed(1)}">${esc(s.titel + ' ' + s.name)}</text>`
       : '';
     return `<g class="${klassen.join(' ')}">
       <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${s ? 13 : 9}"></circle>
-      <text class="name" x="${x.toFixed(1)}" y="${(y - 17).toFixed(1)}">${name}</text>
+      <text class="name" x="${x.toFixed(1)}" y="${(y - 17).toFixed(1)}">${esc(name)}</text>
       ${beschriftung}
     </g>`;
   }).join('');

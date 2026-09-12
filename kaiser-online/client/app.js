@@ -264,17 +264,17 @@ function lobbyZeichnen() {
 
     let knoepfe = '';
     if (r.dabei) {
-      knoepfe = `<button data-oeffnen="${r.id}" class="gut">${r.gestartet ? 'Weiterspielen' : 'Zum Warteraum'}</button>`;
-      if (!r.gestartet) knoepfe += `<button data-verlassen="${r.id}" class="gefahr">Platz aufgeben</button>`;
+      knoepfe = `<button data-oeffnen="${esc(r.id)}" class="gut">${r.gestartet ? 'Weiterspielen' : 'Zum Warteraum'}</button>`;
+      if (!r.gestartet) knoepfe += `<button data-verlassen="${esc(r.id)}" class="gefahr">Platz aufgeben</button>`;
     } else if (r.beitretbar) {
       // Das Fuerstentum richtet sich nach der Sitzreihenfolge, wie im Original.
       knoepfe = `
-        <span class="klein">Sie regieren ${r.naechsteRegion}.</span>
+        <span class="klein">Sie regieren ${esc(r.naechsteRegion)}.</span>
         <select data-anrede="${r.id}">
           <option value="m"${konto && !konto.weiblich ? ' selected' : ''}>männlich</option>
           <option value="w"${konto && konto.weiblich ? ' selected' : ''}>weiblich</option>
         </select>
-        <button data-beitreten="${r.id}" class="gut">Platz nehmen</button>`;
+        <button data-beitreten="${esc(r.id)}" class="gut">Platz nehmen</button>`;
     } else {
       knoepfe = `<span class="klein">${r.gestartet ? 'Läuft bereits, kein Einstieg mehr.' : 'Voll besetzt.'}</span>`;
     }
@@ -287,7 +287,7 @@ function lobbyZeichnen() {
       </div>
       <div class="plaetze">${plaetze}</div>
       <div class="reihe">${knoepfe}</div>
-      <div class="klein"><b>${regeln}.</b> Planung ${r.planungsSekunden ? r.planungsSekunden + ' s' : 'ohne Frist'},
+      <div class="klein"><b>${esc(regeln)}.</b> Planung ${r.planungsSekunden ? r.planungsSekunden + ' s' : 'ohne Frist'},
         Diplomatie ${r.diplomatieSekunden ? r.diplomatieSekunden + ' s' : 'ohne Frist'}${
         r.angelegtVon ? ', eröffnet von ' + r.angelegtVon : ''}${
         r.angelegt ? ' am ' + datum(r.angelegt) : ''}</div>
@@ -997,7 +997,7 @@ function diplomatieZeichnen() {
         [1, 'Hilfe für den Angegriffenen'], [0, 'Neutral bleiben']
       ];
       h += '<div class="reihe">' + opt.map(([v, t]) =>
-        `<button data-krieg="${k.id}" data-haltung="${v}" ${k.haltung === v ? 'class="gut"' : ''}>${t}</button>`).join('') + '</div>';
+        `<button data-krieg="${esc(k.id)}" data-haltung="${v}" ${k.haltung === v ? 'class="gut"' : ''}>${t}</button>`).join('') + '</div>';
       if (k.haltung != null) h += `<p class="klein">Gewählt: ${opt.find(o => o[0] === k.haltung)[1]}</p>`;
     }
     h += '</div>';

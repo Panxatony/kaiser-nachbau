@@ -5,6 +5,12 @@
 //
 // Die Texte stehen woertlich so im BASIC; die Zeilennummern stehen dabei.
 
+// Anreden und Namen kommen vom Server und enthalten Spielernamen; maskieren,
+// siehe esc() in app.js.
+const esc = wert => String(wert ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
 import { zeichen, zeichensatzLaden } from './c64.js';
 
 /**
@@ -58,14 +64,14 @@ export function blaetterAus(z) {
     case 'titel': return [{
       art: 'titel',
       titel: 'Ihnen wird ein neuer Titel verliehen!',
-      zeilen: ['Sie sind nun', `<b>${z.anrede}</b> !`],
+      zeilen: ['Sie sind nun', `<b>${esc(z.anrede)}</b> !`],
       krone: true
     }];
 
     // Zeile 735 bis 739
     case 'bankrott': return [{
       art: 'bankrott',
-      titel: `${z.anrede},`,
+      titel: `${esc(z.anrede)},`,
       zeilen: ['Sie sind leider Bankrott!',
                'Gläubiger haben große Teile Ihres Besitzes gepfändet!']
     }];
@@ -73,7 +79,7 @@ export function blaetterAus(z) {
     // Zeile 766 bis 768 und 806, 807
     case 'amtsenthebung': return [{
       art: 'amtsenthebung',
-      titel: `${z.anrede},`,
+      titel: `${esc(z.anrede)},`,
       zeilen: [z.text || 'Sie sind 1 Jahr Ihres Amtes enthoben worden!']
     }];
 
@@ -84,7 +90,7 @@ export function blaetterAus(z) {
     // eigener, im Ton der uebrigen Bildschirme.
     case 'tod': return [{
       art: 'tod',
-      titel: `${z.anrede},`,
+      titel: `${esc(z.anrede)},`,
       zeilen: ['Ihre Stunde hat geschlagen.',
                `Sie sind Anno ${z.jahr} an Altersschwäche verschieden.`,
                'Ihr Fürstentum bleibt ohne Herrn zurück.']
@@ -96,12 +102,12 @@ export function blaetterAus(z) {
         art: 'kaiserVorher',
         titel: 'Der letzte Kaiser des',
         zeilen: ['HEILIGEN RÖMISCHEN REICHES DEUTSCHER NATION',
-                 'war', `<b>${z.vorgaenger}</b>.`]
+                 'war', `<b>${esc(z.vorgaenger)}</b>.`]
       },
       {
         art: 'kaiser',
         titel: 'Es lebe',
-        zeilen: [`<b>${z.kurz}</b>`, 'Kaiser von Gottes Gnaden'],
+        zeilen: [`<b>${esc(z.kurz)}</b>`, 'Kaiser von Gottes Gnaden'],
         abspann: true
       }
     ];
