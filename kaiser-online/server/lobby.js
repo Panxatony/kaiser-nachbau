@@ -10,6 +10,14 @@ import { sichern, laden, alleIds, loeschen } from './speicher.js';
 export const MAX_SPIELER = 9;
 
 /** Erzeugt aus einem Namen eine Kennung, die als Dateiname taugt. */
+/**
+ * Welche Zeichen ein Rundenname tragen darf. Kontonamen sind schon enger
+ * gefasst (siehe konten.js); hier ist etwas mehr erlaubt, aber nichts, womit
+ * sich Markup bauen liesse: keine spitzen Klammern, keine Anfuehrungszeichen,
+ * kein kaufmaennisches Und.
+ */
+export const ERLAUBTER_NAME = /^[\p{L}\p{N} .,\-_!?()]+$/u;
+
 export function kennungAus(name, vorhanden = new Set()) {
   let k = String(name || '').toLowerCase()
     .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
@@ -42,6 +50,12 @@ export class Lobby {
   anlegen(name, optionen = {}) {
     name = String(name || '').trim().slice(0, 40);
     if (name.length < 2) return { fehler: 'Die Runde braucht einen Namen mit mindestens 2 Zeichen.' };
+    // Der Rundenname steht spaeter in der Lobby jedes Mitspielers. Erlaubt sind
+    // darum nur Zeichen, aus denen sich kein Markup bauen laesst; der Client
+    // maskiert zusaetzlich beim Einsetzen (siehe esc() in app.js).
+    if (!ERLAUBTER_NAME.test(name)) {
+      return { fehler: 'Im Rundennamen sind nur Buchstaben, Ziffern, Leerzeichen und . , - _ ! ? ( ) erlaubt.' };
+    }
     if ([...this.spiele.values()].some(s => s.name.toLowerCase() === name.toLowerCase())) {
       return { fehler: 'Eine Runde mit diesem Namen gibt es schon.' };
     }

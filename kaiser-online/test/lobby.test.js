@@ -236,3 +236,20 @@ test('Die Kontendatei wird nicht als Spielstand missverstanden', () => {
   const l = new Lobby();
   assert.ok(!l.spiel('konten'), 'konten.json taucht nicht als Runde auf');
 });
+
+test('Ein Rundenname darf kein Markup enthalten', () => {
+  const lobby = new Lobby();
+  const boese = lobby.anlegen('<img src=x onerror=alert(1)>', { von: 'KARL' });
+  assert.ok(boese.fehler, 'Der Name wird abgewiesen');
+  assert.ok(!boese.spiel, 'und es entsteht keine Runde');
+
+  // Anfuehrungszeichen und kaufmaennisches Und ebenfalls nicht
+  assert.ok(lobby.anlegen('Tom & Jerry', { von: 'KARL' }).fehler);
+  assert.ok(lobby.anlegen('Runde "Nord"', { von: 'KARL' }).fehler);
+
+  // Umlaute, Ziffern und die ueblichen Satzzeichen bleiben erlaubt
+  for (const gut of ['Abendrunde', 'Wir-Testen2', 'Runde für Könige!', 'Die Zweite (2026)']) {
+    const e = lobby.anlegen(gut, { von: 'KARL' });
+    assert.ok(e.spiel, `"${gut}" muss durchgehen: ${e.fehler || ''}`);
+  }
+});

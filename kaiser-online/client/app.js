@@ -16,6 +16,22 @@ const REGIONEN = ['PREUSSEN', 'HESSEN', 'BAYERN', 'BÖHMEN', 'SACHSEN', 'MÄHREN
 const zahl = n => Math.round(n).toLocaleString('de-DE');
 const datum = t => t ? new Date(t).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : '';
 
+/**
+ * Maskiert Text, bevor er in eine Vorlage eingesetzt wird.
+ *
+ * Die Oberflaeche baut ihre Seiten aus Zeichenketten und setzt sie per
+ * innerHTML ein. Alles, was von einem Menschen kommt -- Rundennamen,
+ * Kontonamen, Mailadressen, Meldungen des Servers, in denen Namen stehen --
+ * geht darum durch esc(). Ohne das koennte ein Mitspieler eine Runde
+ * "<img src=x onerror=...>" nennen und damit in jedem fremden Browser Skript
+ * ausfuehren, auch im Browser der Verwaltung. Der Server laesst solche Namen
+ * inzwischen gar nicht mehr zu (ERLAUBTER_NAME in lobby.js); dies hier ist die
+ * zweite Tuer, die nicht davon abhaengt, dass die erste zuhaelt.
+ */
+const esc = wert => String(wert ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
 let ws = null;
 let zustand = null;      // Spielsicht, wenn eine Runde offen ist
 let lobbySicht = null;   // Lobbysicht, sonst
@@ -215,7 +231,7 @@ function lobbyZeichnen() {
   adresseSetzen(null);
   bildschirm('lobby');
   $('lobbyKonto').textContent = konto
-    ? `Angemeldet als ${konto.name}${konto.admin ? ' (Verwaltung)' : ''}` : '';
+    ? `Angemeldet als ${esc(konto.name)}${konto.admin ? ' (Verwaltung)' : ''}` : '';
   $('verwaltungKnopf').classList.toggle('verstecken', !(konto && konto.admin));
   if (!(konto && konto.admin)) $('verwaltungKarte').classList.add('verstecken');
 
@@ -238,12 +254,12 @@ function lobbyZeichnen() {
   }
 
   $('rundenListe').innerHTML = runden.map((r, i) => {
-    const lage = r.beendet ? `beendet, Kaiser ist ${r.sieger}`
+    const lage = r.beendet ? `beendet, Kaiser ist ${esc(r.sieger)}`
       : r.gestartet ? `läuft, Anno ${r.jahr}, ${phaseName(r.phase)}`
       : 'wartet auf Mitspieler';
     const regeln = r.regelwerkName || 'Original 1984';
     const plaetze = r.spieler.length
-      ? r.spieler.map(s => `<span class="platz${s.selbst ? ' selbst' : ''}">${s.name} <span class="klein">${s.region}</span></span>`).join('')
+      ? r.spieler.map(s => `<span class="platz${s.selbst ? ' selbst' : ''}">${esc(s.name)} <span class="klein">${esc(s.region)}</span></span>`).join('')
       : '<span class="klein">noch niemand</span>';
 
     let knoepfe = '';
@@ -265,7 +281,7 @@ function lobbyZeichnen() {
 
     return `<div class="runde${r.dabei ? ' meine' : ''}">
       <div class="rundenkopf">
-        <span class="rundenname">${r.name}</span>
+        <span class="rundenname">${esc(r.name)}</span>
         <span class="klein">${lage}</span>
         <span class="klein">${r.spielerzahl} von ${r.maxSpieler} Plätzen</span>
       </div>
@@ -308,18 +324,18 @@ function verwaltungZeichnen() {
   const zeilen = verwaltung.konten.map(k => {
     const knoepfe = [];
     const eigen = k.name === konto.name;
-    knoepfe.push(`<button data-kennwort="${k.name}">Kennwort neu</button>`);
+    knoepfe.push(`<button data-kennwort="${esc(k.name)}">Kennwort neu</button>`);
     if (verwaltung.post && verwaltung.post.bereit) {
-      knoepfe.push(`<button data-erneut="${k.name}">${k.email ? 'Einladung erneut' : 'Einladen'}</button>`);
+      knoepfe.push(`<button data-erneut="${esc(k.name)}">${k.email ? 'Einladung erneut' : 'Einladen'}</button>`);
     }
     if (!eigen) {
-      knoepfe.push(`<button data-sperren="${k.name}" data-wert="${k.gesperrt ? '0' : '1'}">${k.gesperrt ? 'Entsperren' : 'Sperren'}</button>`);
-      knoepfe.push(`<button data-admin="${k.name}" data-wert="${k.admin ? '0' : '1'}">${k.admin ? 'Verwaltung entziehen' : 'Zum Verwalter'}</button>`);
-      knoepfe.push(`<button data-loeschen="${k.name}" class="gefahr">Löschen</button>`);
+      knoepfe.push(`<button data-sperren="${esc(k.name)}" data-wert="${k.gesperrt ? '0' : '1'}">${k.gesperrt ? 'Entsperren' : 'Sperren'}</button>`);
+      knoepfe.push(`<button data-admin="${esc(k.name)}" data-wert="${k.admin ? '0' : '1'}">${k.admin ? 'Verwaltung entziehen' : 'Zum Verwalter'}</button>`);
+      knoepfe.push(`<button data-loeschen="${esc(k.name)}" class="gefahr">Löschen</button>`);
     }
     return `<tr class="${k.gesperrt ? 'gesperrt' : ''}">
-      <td>${k.name}${k.admin ? ' <span class="rolle">Verwaltung</span>' : ''}${k.gesperrt ? ' <span class="klein">gesperrt</span>' : ''}</td>
-      <td class="klein">${k.email ? k.email : '<span style="opacity:.5">keine Mail</span>'}${
+      <td>${esc(k.name)}${k.admin ? ' <span class="rolle">Verwaltung</span>' : ''}${k.gesperrt ? ' <span class="klein">gesperrt</span>' : ''}</td>
+      <td class="klein">${k.email ? esc(k.email) : '<span style="opacity:.5">keine Mail</span>'}${
         k.eingeladen ? '<br>eingeladen ' + datum(k.eingeladen) + (k.kennwortGeaendert ? '' : ', Zahl noch unverändert') : ''}</td>
       <td class="klein">${datum(k.angelegt)}${k.angelegtVon ? '<br>von ' + k.angelegtVon : ''}</td>
       <td class="klein">${k.zuletzt ? datum(k.zuletzt) : 'nie'}</td>
@@ -459,7 +475,7 @@ function zeichnen() {
   if (!zustand.gestartet) { warteraumZeichnen(); return; }
 
   $('jahr').textContent = 'Anno ' + zustand.jahr;
-  $('anrede').textContent = `${zustand.ich.anrede} · ${zustand.name}`
+  $('anrede').textContent = `${esc(zustand.ich.anrede)} · ${esc(zustand.name)}`
     + (zustand.regelwerk && zustand.regelwerk.id !== 'original' ? ' · ' + zustand.regelwerk.name : '');
   const p = $('phaseAnzeige');
   p.textContent = { planung: 'Planung', diplomatie: 'Diplomatie', auswertung: 'Auswertung', ende: 'Spielende' }[zustand.phase];
@@ -483,7 +499,7 @@ function warteraumZeichnen() {
   $('diploZeit').value = zustand.diplomatieSekunden ?? 120;
   const t = $('warteListe');
   t.innerHTML = '<tr><th>Spieler</th><th>Region</th></tr>' +
-    zustand.spieler.map(s => `<tr class="${s.selbst ? 'selbst' : ''}"><td>${s.anrede}</td><td>${s.region}</td></tr>`).join('');
+    zustand.spieler.map(s => `<tr class="${s.selbst ? 'selbst' : ''}"><td>${esc(s.anrede)}</td><td>${esc(s.region)}</td></tr>`).join('');
 }
 
 function werteZeichnen() {
@@ -536,7 +552,7 @@ function spielstandZeichnen() {
             ? (s.diplomatieFertig ? '<span class="fertig">bereit</span>' : '<span class="wartet">wählt</span>')
             : (s.fertig ? '<span class="fertig">fertig</span>' : '<span class="wartet">plant</span>'));
       return `<tr class="${s.selbst ? 'selbst' : ''}${s.tot ? ' verstorben' : ''}">
-        <td>${s.titel} ${s.name}<br><span class="klein">${s.region}</span></td>
+        <td>${esc(s.titel + ' ' + s.name)}<br><span class="klein">${esc(s.region)}</span></td>
         <td class="zahl">${zahl(s.punkte)}</td><td class="zahl">${zahl(s.soldaten)}</td>
         <td class="zahl">${zahl(s.land)}</td><td class="zahl">${zahl(s.kasse)}</td>
         <td>${status}</td></tr>`;
@@ -546,7 +562,7 @@ function spielstandZeichnen() {
 function meldungenZeichnen() {
   const m = (zustand.runde && zustand.runde.meldungen) || [];
   $('meldungen').innerHTML = m.length
-    ? m.map(x => `<div class="meldung ${x.art === 'warnung' || x.art === 'bankrott' || x.art === 'amtsenthebung' || x.art === 'tod' ? 'warnung' : (x.art === 'titel' ? 'gut' : '')}">${x.text}
+    ? m.map(x => `<div class="meldung ${x.art === 'warnung' || x.art === 'bankrott' || x.art === 'amtsenthebung' || x.art === 'tod' ? 'warnung' : (x.art === 'titel' ? 'gut' : '')}">${esc(x.text)}
         ${x.verlust ? '<ul>' + x.verlust.map(v => `<li>${v.anzahl} ${v.was}</li>`).join('') + '</ul>' : ''}</div>`).join('')
     : '<p class="klein">Keine Meldungen.</p>';
 }
@@ -642,7 +658,7 @@ function schrittLeisteZeichnen(g) {
       : s.nr > g.max ? 'spaeter' : 'offen';
     const anklickbar = lage === 'offen';
     const tag = anklickbar ? 'button' : 'span';
-    return `<${tag} class="stufe ${lage}" title="${s.name}"${anklickbar ? ` data-schritt="${s.nr}"` : ''}>
+    return `<${tag} class="stufe ${lage}" title="${esc(s.name)}"${anklickbar ? ` data-schritt="${s.nr}"` : ''}>
       <span class="nr">${s.nr}</span><span class="was">${s.kurz}</span>
     </${tag}>`;
   }).join('');
@@ -860,7 +876,7 @@ function seiteMilitaer(r, i) {
     h += `<p class="klein">Es ist noch zu früh.</p>`;
   } else if (r.krieg) {
     const z = zustand.spieler.find(s => s.id === r.krieg.ziel);
-    h += `<p class="meldung warnung">Sie erklären ${z ? z.titel + ' ' + z.name : '?'} den Krieg.
+    h += `<p class="meldung warnung">Sie erklären ${z ? esc(z.titel + ' ' + z.name) : '?'} den Krieg.
       Die Schlacht wird nach der Planungsphase ausgetragen.</p>
       <button data-a="kriegZuruecknehmen" class="gefahr">Kriegserklärung zurücknehmen</button>`;
   } else if (!gegner.length) {
@@ -868,7 +884,7 @@ function seiteMilitaer(r, i) {
   } else {
     h += `<div class="reihe">
       <div><label for="kZiel">Wen wollen Sie angreifen?</label>
-        <select id="kZiel">${gegner.map(s => `<option value="${s.id}">${s.titel} ${s.name} von ${s.region}</option>`).join('')}</select></div>
+        <select id="kZiel">${gegner.map(s => `<option value="${esc(s.id)}">${esc(s.titel + ' ' + s.name + ' von ' + s.region)}</option>`).join('')}</select></div>
       <button data-a="kriegErklaeren" class="gefahr">Krieg erklären</button>
     </div>
     <p class="klein">Die Erklärung wird erst nach der Planungsphase aufgedeckt.
@@ -890,7 +906,7 @@ function seiteAbschluss(r, i) {
       <tr><td>Soldaten</td><td class="zahl">${zahl(i.soldaten)}</td><td></td></tr>
       ${st ? `<tr><td>Steuern eingezogen</td><td class="zahl">${zahl(st.summe)}</td><td>Taler</td></tr>` : ''}
     </table></div>
-    ${ziel ? `<p class="meldung warnung">Sie ziehen gegen ${ziel.titel} ${ziel.name} in den Krieg.</p>` : ''}
+    ${ziel ? `<p class="meldung warnung">Sie ziehen gegen ${esc(ziel.titel + ' ' + ziel.name)} in den Krieg.</p>` : ''}
     <p class="klein">${gegner.length
       ? 'Es planen noch: ' + gegner.join(', ') + '.'
       : 'Alle anderen sind fertig. Mit Ihrem Zug endet die Planung.'}</p>`;
@@ -971,7 +987,7 @@ function diplomatieZeichnen() {
   let h = '<p class="klein">Diese Kriege wurden erklärt. Entscheiden Sie, wie Sie sich verhalten.</p>';
 
   for (const k of zustand.kriege) {
-    h += `<div class="karte"><h3>${k.angreifer} greift ${k.verteidiger} an</h3>`;
+    h += `<div class="karte"><h3>${esc(k.angreifer)} greift ${esc(k.verteidiger)} an</h3>`;
     if (k.beteiligt) {
       h += `<p class="meldung warnung">Sie sind selbst beteiligt und wählen keine Haltung.
         Stellen Sie unten Ihre Truppen auf und bestätigen Sie dann.</p>`;
@@ -1480,20 +1496,20 @@ function berichtZeichnen() {
 
   let h = `<h3>Jahr ${b.jahr}</h3>`;
   for (const k of b.kriege) {
-    if (k.abgebrochen) { h += `<div class="meldung warnung">${k.text}</div>`; continue; }
+    if (k.abgebrochen) { h += `<div class="meldung warnung">${esc(k.text)}</div>`; continue; }
     const gewinner = k.landAngreifer > 0 ? k.angreifer : k.verteidiger;
     const land = Math.abs(k.landAngreifer);
-    h += `<div class="meldung"><strong>${k.angreifer} gegen ${k.verteidiger}</strong><br>
+    h += `<div class="meldung"><strong>${esc(k.angreifer)} gegen ${esc(k.verteidiger)}</strong><br>
       Angriffsweg: ${k.pfad.join(' → ')}<br>
-      ${land ? `${gewinner} gewinnt ${zahl(land)} Hektar.` : 'Keine Landverschiebung.'}<br>
-      Verluste ${k.angreifer}: ${beschreibeVerluste(k.verluste[0])}<br>
-      Verluste ${k.verteidiger}: ${beschreibeVerluste(k.verluste[1])}
-      ${k.entschaedigungen.length ? '<br>' + k.entschaedigungen.map(e => `${e.von} zahlt ${zahl(e.taler)} Taler an ${e.an}.`).join('<br>') : ''}
+      ${land ? `${esc(gewinner)} gewinnt ${zahl(land)} Hektar.` : 'Keine Landverschiebung.'}<br>
+      Verluste ${esc(k.angreifer)}: ${beschreibeVerluste(k.verluste[0])}<br>
+      Verluste ${esc(k.verteidiger)}: ${beschreibeVerluste(k.verluste[1])}
+      ${k.entschaedigungen.length ? '<br>' + k.entschaedigungen.map(e => `${esc(e.von)} zahlt ${zahl(e.taler)} Taler an ${esc(e.an)}.`).join('<br>') : ''}
       </div>`;
   }
   for (const s of b.spieler) {
     for (const m of s.meldungen) {
-      if (m.art === 'titel' || m.art === 'bankrott') h += `<div class="meldung ${m.art === 'titel' ? 'gut' : 'warnung'}">${s.name}: ${m.text}</div>`;
+      if (m.art === 'titel' || m.art === 'bankrott') h += `<div class="meldung ${m.art === 'titel' ? 'gut' : 'warnung'}">${esc(s.name)}: ${esc(m.text)}</div>`;
     }
   }
   $('bericht').innerHTML = h;
