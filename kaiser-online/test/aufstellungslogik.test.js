@@ -19,7 +19,7 @@ test('Zustand entsteht aus der Kriegssicht', () => {
   assert.equal(z.vorrat.length, 6);
   assert.equal(z.gesetzt.length, 0);
   assert.equal(z.gewaehlt, 'kavallerie');
-  assert.deepEqual(A.offeneEinheiten(z), { kavallerie: 2, artillerie: 1, infanterie: 2, miliz: 1 });
+  assert.deepEqual({ ...A.offeneEinheiten(z) }, { kavallerie: 2, artillerie: 1, infanterie: 2, miliz: 1 });
 });
 
 test('Bereits gesetzte Einheiten kommen aus dem Vorrat', () => {
@@ -167,9 +167,15 @@ test('Das Anzeigefeld zeigt auch die Truppen des Gegners', () => {
 });
 
 test('Die Tafel zaehlt beide Seiten', () => {
-  assert.deepEqual(A.zaehlen(['miliz', 'miliz', 'kavallerie']), { miliz: 2, kavallerie: 1 });
-  assert.deepEqual(A.zaehlen([]), {});
-  assert.deepEqual(A.zaehlen(null), {});
+  // zaehlen() liefert ein Objekt ohne Prototyp und mit allen vier Gattungen,
+  // damit ein Schluessel wie "__proto__" aus dem Netz nirgends landen kann.
+  const leer = { kavallerie: 0, artillerie: 0, infanterie: 0, miliz: 0 };
+  assert.deepEqual({ ...A.zaehlen(['miliz', 'miliz', 'kavallerie']) },
+                   { ...leer, miliz: 2, kavallerie: 1 });
+  assert.deepEqual({ ...A.zaehlen([]) }, leer);
+  assert.deepEqual({ ...A.zaehlen(null) }, leer);
+  assert.deepEqual({ ...A.zaehlen(['__proto__', 'constructor', 'miliz']) },
+                   { ...leer, miliz: 1 }, 'fremde Schluessel werden uebergangen');
 });
 
 // ------------------------------------------- mehrere Einheiten je Zeile

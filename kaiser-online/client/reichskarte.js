@@ -48,8 +48,10 @@ export function reichskarteSvg(reich, eigene, spieler = []) {
   if (!reich || !reich.regionen) return '';
   const { regionen, nachbarn } = reich;
   // Die Spielerliste nennt die Region als Namen; die Nummer steht daneben.
-  const wer = {};
-  for (const s of spieler) if (s.regionIndex != null) wer[s.regionIndex] = s;
+  // Eine Map statt eines Objekts: der Schluessel kommt vom Server, und in eine
+  // Map laesst sich kein "__proto__" hineinschreiben.
+  const wer = new Map();
+  for (const s of spieler) if (s.regionIndex != null) wer.set(Number(s.regionIndex), s);
 
   // Grenzen einsammeln. Was nur in eine Richtung geht, wird als Pfeil
   // gezeichnet; das gibt es im Original zweimal.
@@ -80,7 +82,7 @@ export function reichskarteSvg(reich, eigene, spieler = []) {
 
   const knoten = regionen.map((name, i) => {
     const [x, y] = punkt(name);
-    const s = wer[i];
+    const s = wer.get(i);
     const klassen = ['land'];
     if (i === eigene) klassen.push('eigen');
     else if (meineNachbarn.has(i)) klassen.push('nachbar');

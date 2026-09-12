@@ -210,16 +210,21 @@ export function anzeigeFeld(z) {
   return feld;
 }
 
-/** Zaehlt Einheiten je Gattung in einer Liste von Gattungsnamen. */
+/**
+ * Zaehlt Einheiten je Gattung in einer Liste von Gattungsnamen.
+ *
+ * Gezaehlt werden nur die vier bekannten Gattungen. Die Liste kommt vom
+ * Server; wuerde sie einen anderen Schluessel tragen, etwa "__proto__",
+ * landete er sonst als Eigenschaft in einem gewoehnlichen Objekt.
+ */
 export function zaehlen(liste) {
-  const n = {};
-  for (const g of liste || []) n[g] = (n[g] || 0) + 1;
+  const n = Object.create(null);
+  for (const g of GATTUNGEN) n[g] = 0;
+  for (const g of liste || []) if (g in n) n[g] += 1;
   return n;
 }
 
 /** Zaehlt die uebrigen Einheiten je Gattung. */
 export function offeneEinheiten(z) {
-  const n = {};
-  for (const g of z.vorrat) n[g] = (n[g] || 0) + 1;
-  return n;
+  return zaehlen(z.vorrat);
 }
