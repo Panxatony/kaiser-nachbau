@@ -1568,6 +1568,29 @@ function truppentafel(z) {
   </table></div>`;
 }
 
+/**
+ * Stellt die Schaerfe passend zur Groesse ein.
+ *
+ * Das Feld ist 320 auf 608 Bildpunkte gross und wird auf die Fensterhoehe
+ * gezogen. Trifft das genau eine ganze Zahl -- doppelt, dreifach --, sollen
+ * die Bildpunkte scharfe Kaestchen bleiben, wie auf dem C64. Liegt es
+ * dazwischen, wuerde "pixelated" manche Punkte doppelt und andere einfach
+ * malen; dann sieht weiches Zeichnen besser aus.
+ */
+function feldSchaerfe(c) {
+  if (!c) return;
+  const hoehe = c.getBoundingClientRect().height;
+  if (!hoehe) return;
+  const k = hoehe / c.height;
+  c.style.imageRendering = Math.abs(k - Math.round(k)) < 0.03 ? 'pixelated' : 'auto';
+}
+
+// Beim Aendern der Fenstergroesse stimmt die Rechnung neu.
+addEventListener('resize', () => {
+  feldSchaerfe($('aufstellungsfeld'));
+  feldSchaerfe($('schlachtfeld'));
+});
+
 /** Zeichnet Gelände samt gesetzter Einheiten. */
 function feldMalen() {
   if (!aufstellung) return;
@@ -1576,6 +1599,7 @@ function feldMalen() {
   feldZeichnen(ctx, A.anzeigeFeld(aufstellung));
   // Den erlaubten Bereich hervorheben. Im Original darf der Cursor vom
   // Startplatz aus bis an den eigenen Rand und bis an die Grenze wandern.
+  feldSchaerfe(c);
   const g = A.spaltenbereich(aufstellung);
   ctx.strokeStyle = FARBEN[7];
   ctx.lineWidth = 1;
@@ -1678,6 +1702,7 @@ async function schlachtfeldZeichnen() {
   catch { zeichensatzFehlt($('schlachtfeld')); return; }
 
   schlachtlegende($('schlachtLegende'));
+  feldSchaerfe($('schlachtfeld'));
   const ctx = $('schlachtfeld').getContext('2d');
   const hatAufzeichnung = k.startbild && k.aufzeichnung && k.aufzeichnung.length;
   $('abspielLeiste').classList.toggle('verstecken', !hatAufzeichnung);

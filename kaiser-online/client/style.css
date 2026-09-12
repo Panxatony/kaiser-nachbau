@@ -377,19 +377,35 @@ button.stufe:hover { border-color: var(--tinte); color: var(--tinte); background
 
 canvas { image-rendering: pixelated; max-width: 100%; display: block; }
 
-/* Der C64-Zeichensatz bleibt schwarz hinterlegt, wie eine eingeklebte Tafel */
+/* Der C64-Zeichensatz bleibt schwarz hinterlegt, wie eine eingeklebte Tafel.
+ *
+ * Das Schlachtfeld ist 76 Zeichen hoch und 40 breit, also hochkant: in
+ * Bildpunkten 320 auf 608. Am C64 rollte es durchs Bild, hier passt es ganz
+ * hinein. Die Hoehe richtet sich nach dem Fenster, die Breite folgt von
+ * selbst, damit die Zeichen quadratisch bleiben. Mehr als doppelte Groesse
+ * braucht es nicht -- darueber wird nur die Treppe der Bildpunkte groesser.
+ */
 .feldhuelle {
-  overflow: auto;
-  max-height: 70vh;
+  overflow: hidden;
   border: 1px solid var(--linie);
   outline: 3px double var(--linie);
   outline-offset: 3px;
   background: #000;
   margin: 10px 0 4px;
+  display: flex;
+  justify-content: center;
 }
-.feldhuelle canvas { width: 640px; max-width: none; }
-.feldhuelle { background: #000; }
-@media (max-width: 700px) { .feldhuelle canvas { width: 400px; } }
+.feldhuelle canvas {
+  height: min(74vh, 1216px);
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+/* Liegt das Fenster quer und ist flach, bleibt die Hoehe der begrenzende Wert;
+   ist es schmal, darf die Breite den Ausschlag geben. */
+@media (max-width: 620px) {
+  .feldhuelle canvas { height: auto; width: 100%; }
+}
 
 #titelbild {
   margin: 0 auto 18px;
