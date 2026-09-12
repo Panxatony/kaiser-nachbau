@@ -1444,7 +1444,18 @@ async function aufstellungZeichnen() {
   karte.classList.toggle('verstecken', !krieg);
   if (!krieg) { aufstellung = null; return; }
 
-  if (!aufstellung || aufstellung.kriegId !== krieg.id) aufstellung = A.zustandAus(krieg);
+  if (!aufstellung || aufstellung.kriegId !== krieg.id) {
+    aufstellung = A.zustandAus(krieg);
+  } else {
+    // Der Gegner stellt auf demselben Feld auf, und man sieht ihm dabei zu --
+    // so steht es im Handbuch, Seite 14 und 15. Seine Truppen muessen darum
+    // mit jedem neuen Stand herueberkommen. Die eigene, halb fertige
+    // Aufstellung bleibt davon unberuehrt; sie lebt nur hier im Browser,
+    // bis sie abgeschickt wird.
+    aufstellung.gegnerAufstellung = (krieg.gegnerAufstellung || []).map(e => ({ ...e }));
+    aufstellung.gegnerEinheiten = krieg.gegnerEinheiten || [];
+    aufstellung.gegnerSpalte = krieg.gegnerSpalte ?? aufstellung.gegnerSpalte;
+  }
   const z = aufstellung;
   const offen = A.offeneEinheiten(z);
   const gesperrt = !!(zustand.runde && zustand.runde.diplomatieFertig);

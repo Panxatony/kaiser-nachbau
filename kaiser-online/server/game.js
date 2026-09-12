@@ -341,15 +341,30 @@ export class Spiel {
       const istAngreifer = krieg.angreifer === s.id;
       const vorrat = [...(istAngreifer ? krieg.einheitenA : krieg.einheitenV)];
       const geprueft = [];
-      const belegt = new Set();
+      // Belegt wird ein Platz, nicht eine Zeile: in eine Zeile passen mehrere
+      // Einheiten nebeneinander, sie duerfen sich nur nicht ueberlappen. Eine
+      // Einheit ist zwei Zeichen breit.
+      const belegt = new Map();                    // Zeile -> [Spalten]
       for (const e of (daten.aufstellung || [])) {
         const i = vorrat.indexOf(e.gattung);
         if (i < 0) continue;                       // mehr Einheiten als vorhanden
         const zeile = R.int(e.zeile);
-        if (!(zeile >= 0 && zeile < B.ZEILEN) || belegt.has(zeile)) continue;
+        if (!(zeile >= 0 && zeile < B.ZEILEN)) continue;
+        // Die Spalte ist das, was der Spieler tatsaechlich gewaehlt hat. Ohne
+        // sie landet die Einheit spaeter in der Startspalte des Cursors, und
+        // das ist die schlechteste Stellung des Feldes (siehe TEXTE.md und
+        // B.FELDHERR_ABSTAND).
+        const spalte = e.spalte == null
+          ? null
+          : B.spalteEinpassen(e.spalte, istAngreifer);
+        const reihe = belegt.get(zeile) || [];
+        if (spalte != null && reihe.some(c => Math.abs(c - spalte) < 2)) continue;
+        if (spalte == null && reihe.length) continue;   // ohne Spalte nur eine je Zeile
         vorrat.splice(i, 1);
-        belegt.add(zeile);
-        geprueft.push({ gattung: e.gattung, zeile });
+        reihe.push(spalte == null ? -99 : spalte);
+        belegt.set(zeile, reihe);
+        geprueft.push(spalte == null ? { gattung: e.gattung, zeile }
+                                     : { gattung: e.gattung, zeile, spalte });
       }
       if (istAngreifer) krieg.aufstellungA = geprueft;
       else krieg.aufstellungV = geprueft;

@@ -258,3 +258,46 @@ test('Die Aufstellung des Feldherrn schlaegt die Startspalte', () => {
   assert.ok(mittel(true) > 0, 'Der Feldherr gewinnt als Angreifer gegen die Startspalte');
   assert.ok(mittel(false) < 0, 'Der Feldherr haelt als Verteidiger die Startspalte auf');
 });
+
+// ------------------------------------------- was der Server annimmt und behaelt
+
+test('Die gewaehlte Spalte ueberlebt den Server', () => {
+  const spiel = kriegslage();
+  spiel.aktion('p0', 'aufstellung', { aufstellung: [
+    { gattung: 'kavallerie', zeile: 10, spalte: 17 },
+    { gattung: 'kavallerie', zeile: 10, spalte: 14 },   // dieselbe Zeile, daneben
+    { gattung: 'artillerie', zeile: 20, spalte: 3 }
+  ] });
+  const k = spiel.kriege[0];
+  assert.deepEqual(k.aufstellungA, [
+    { gattung: 'kavallerie', zeile: 10, spalte: 17 },
+    { gattung: 'kavallerie', zeile: 10, spalte: 14 },
+    { gattung: 'artillerie', zeile: 20, spalte: 3 }
+  ], 'Zeile und Spalte kommen unveraendert an');
+});
+
+test('Zwei Einheiten duerfen sich nicht ueberlappen', () => {
+  const spiel = kriegslage();
+  spiel.aktion('p0', 'aufstellung', { aufstellung: [
+    { gattung: 'kavallerie', zeile: 10, spalte: 12 },
+    { gattung: 'kavallerie', zeile: 10, spalte: 13 }    // eine Spalte daneben
+  ] });
+  assert.equal(spiel.kriege[0].aufstellungA.length, 1, 'die zweite wird abgewiesen');
+});
+
+test('Eine Spalte ausserhalb des eigenen Bereichs wird eingepasst', () => {
+  const spiel = kriegslage();
+  spiel.aktion('p0', 'aufstellung', { aufstellung: [
+    { gattung: 'kavallerie', zeile: 5, spalte: 30 }     // jenseits der Grenze
+  ] });
+  const e = spiel.kriege[0].aufstellungA[0];
+  assert.ok(e.spalte <= B.AUFSTELLUNG.angreifer.bis, `eingepasst auf ${e.spalte}`);
+});
+
+test('Die Sicht des Gegners zeigt die fremde Aufstellung', () => {
+  const spiel = kriegslage();
+  spiel.aktion('p0', 'aufstellung', { aufstellung: [{ gattung: 'kavallerie', zeile: 7, spalte: 16 }] });
+  const sichtV = spiel.sichtFuer('p1').kriege[0];
+  assert.deepEqual(sichtV.gegnerAufstellung, [{ gattung: 'kavallerie', zeile: 7, spalte: 16 }],
+    'der Verteidiger sieht, was der Angreifer gesetzt hat');
+});
