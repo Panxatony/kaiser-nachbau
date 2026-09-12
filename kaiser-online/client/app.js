@@ -643,7 +643,13 @@ function planungZeichnen() {
   }[planungsSchritt](r, i);
 
   schrittLeisteZeichnen(g);
+  // Dieser Bereich wird bei jeder Aktion irgendeines Mitspielers neu gebaut,
+  // denn der Server schickt dann allen den neuen Stand. Wer gerade in einem
+  // Feld steht, soll davon nichts merken: Feld, Wert und Schreibmarke
+  // ueberdauern den Neuaufbau.
+  const eingabe = eingabeMerken(ziel);
   ziel.innerHTML = inhalt + fussLeiste(g, r);
+  eingabeWiederherstellen(ziel, eingabe);
   ereignisseBinden(r, i);
   hilfeMitziehen();
 }
@@ -708,6 +714,35 @@ function fussLeiste(g, r) {
 
 // ---------------------------------------------------------------- die Seiten
 
+/**
+ * Ein Zahlenfeld mit eigenen Knoepfen zum Erhoehen und Verringern.
+ *
+ * Die kleinen Pfeile, die Chrome und Firefox an ein <input type="number">
+ * malen, sind nicht vorgeschrieben -- die Spezifikation sagt, der Browser
+ * *koenne* sie anbieten. Safari bietet sie nicht, auf dem iPhone schon gar
+ * nicht, und auch die Pfeiltasten der Tastatur zaehlen dort nicht zuverlaessig
+ * hoch. Darum bringen wir die Knoepfe selbst mit.
+ *
+ * Das passt ohnehin besser: das Original kannte keine Zahleneingabe in ein
+ * Feld, sondern den Steuerknueppel nach oben und unten (Handbuch, Seite 8
+ * und 9). Erhoehen und Verringern ist hier also die naehere Nachbildung, das
+ * Eintippen die Zutat.
+ */
+function zahlenfeld(id, beschriftung, wert, { min = 0, max = null, schritt = 1, breite = 110 } = {}) {
+  const grenzen = `min="${min}"` + (max === null ? '' : ` max="${max}"`);
+  return `<div class="zahlenwahl">
+    <label for="${id}">${beschriftung}</label>
+    <div class="stufen">
+      <button type="button" class="stufe" data-stufe="${-schritt}" data-ziel="${id}"
+        aria-label="${beschriftung}: weniger" title="weniger">&minus;</button>
+      <input id="${id}" type="number" ${grenzen} step="${schritt}" value="${wert}"
+        style="width:${breite}px" inputmode="numeric">
+      <button type="button" class="stufe" data-stufe="${schritt}" data-ziel="${id}"
+        aria-label="${beschriftung}: mehr" title="mehr">+</button>
+    </div>
+  </div>`;
+}
+
 function seiteErnte(r, i) {
   const w = ['Dürre', 'Regen', 'Gewöhnliche Ernte', 'Gutes Wetter', 'Tolles Wetter'][r.markt.wetter - 1];
   const wt = ['Hungersnot droht', 'Schlechte Ernte', '', 'Reiche Ernte', 'Rekordernte'][r.markt.wetter - 1];
@@ -744,12 +779,12 @@ function seiteMarkt(r, i) {
        ${(r.markt.landpreis * 0.9).toFixed(1)} Taler je Hektar.
        Sie haben ${zahl(i.kasse)} Taler, ${zahl(i.korn)} Maß Korn und ${zahl(i.land)} Hektar Land.</p>
     <div class="reihe">
-      <div><label for="mKorn">Korn (Maß)</label><input id="mKorn" type="number" min="0" value="1000" style="width:130px"></div>
+      ${zahlenfeld('mKorn', 'Korn (Maß)', 1000, { schritt: 1000, breite: 130 })}
       <button data-a="kornKaufen">Korn kaufen</button>
       <button data-a="kornVerkaufen">Korn verkaufen</button>
     </div>
     <div class="reihe">
-      <div><label for="mLand">Land (Hektar)</label><input id="mLand" type="number" min="0" value="500" style="width:130px"></div>
+      ${zahlenfeld('mLand', 'Land (Hektar)', 500, { schritt: 100, breite: 130 })}
       <button data-a="landKaufen">Land kaufen</button>
       <button data-a="landVerkaufen">Land verkaufen</button>
     </div>
@@ -772,7 +807,7 @@ function seiteVerteilung(r, i) {
     <p>Das Volk benötigt <strong>${zahl(i.bedarf)} Maß</strong>.
        Erlaubt sind ${zahl(min)} bis ${zahl(max)} Maß, also 20 bis 80 Prozent Ihrer Reserve.</p>
     <div class="reihe">
-      <div><label for="vKorn">Menge</label><input id="vKorn" type="number" min="0" value="${vorschlag}" style="width:150px"></div>
+      ${zahlenfeld('vKorn', 'Menge', vorschlag, { min, max, schritt: 500, breite: 150 })}
       <button data-v="max">Maximum</button>
       <button data-v="bedarf">Benötigtes</button>
       <button data-v="min">Minimum</button>
@@ -807,9 +842,9 @@ function seiteSteuern(r, i) {
     <p class="klein">Hohe Sätze bringen Geld, vertreiben aber Einwohner.
        Ändern Sie die Werte und sehen Sie sich die Vorschau an.</p>
     <div class="reihe">
-      <div><label for="sZoll">Zoll %</label><input id="sZoll" type="number" min="0" max="99" value="${i.zoll}" style="width:80px"></div>
-      <div><label for="sMwst">Mehrwertst. %</label><input id="sMwst" type="number" min="0" max="99" value="${i.mwst}" style="width:80px"></div>
-      <div><label for="sEst">Einkommenst. %</label><input id="sEst" type="number" min="0" max="99" value="${i.est}" style="width:80px"></div>
+      ${zahlenfeld('sZoll', 'Zoll %', i.zoll, { max: 99, breite: 70 })}
+      ${zahlenfeld('sMwst', 'Mehrwertst. %', i.mwst, { max: 99, breite: 70 })}
+      ${zahlenfeld('sEst', 'Einkommenst. %', i.est, { max: 99, breite: 70 })}
       <div><label for="sJustiz">Justiz</label>
         <select id="sJustiz">${['Sehr fair', 'Bescheiden', 'Hart', 'Gierig']
           .map((n, k) => `<option value="${k + 1}" ${i.justiz === k + 1 ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
@@ -913,6 +948,28 @@ function seiteAbschluss(r, i) {
 }
 
 // ---------------------------------------------------------------- Ereignisse
+
+/** Merkt sich, wo der Spieler gerade schreibt, samt Wert und Schreibmarke. */
+function eingabeMerken(bereich) {
+  const el = document.activeElement;
+  if (!el || !el.id || !bereich.contains(el)) return null;
+  const m = { id: el.id, wert: el.value };
+  if (typeof el.selectionStart === 'number') { m.von = el.selectionStart; m.bis = el.selectionEnd; }
+  return m;
+}
+
+/** Setzt den Spieler nach dem Neuaufbau dorthin zurueck, wo er war. */
+function eingabeWiederherstellen(bereich, m) {
+  if (!m) return;
+  const el = bereich.querySelector(`#${CSS.escape(m.id)}`);
+  if (!el) return;                       // der Schritt hat gewechselt
+  if (m.wert !== undefined) el.value = m.wert;
+  el.focus();
+  // Ein Zahlenfeld weist setSelectionRange in manchen Browsern zurueck.
+  if (m.von != null && typeof el.setSelectionRange === 'function') {
+    try { el.setSelectionRange(m.von, m.bis); } catch { /* dann eben nicht */ }
+  }
+}
 
 function ereignisseBinden(r, i) {
   const ziel = $('planungInhalt');

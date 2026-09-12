@@ -214,6 +214,25 @@ label {
   color: var(--tinte-blass);
 }
 .reihe { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+
+/* Zahlenfeld mit eigenen Knoepfen. Die Pfeile, die manche Browser selbst an
+   ein Zahlenfeld malen, sind nicht verlaesslich -- Safari zeigt keine. Darum
+   bringt das Feld seine eigenen mit, und die fremden werden abgeschaltet,
+   damit nicht zweierlei Pfeile nebeneinanderstehen. */
+.zahlenwahl .stufen { display: flex; align-items: stretch; }
+.zahlenwahl input { text-align: right; }
+.zahlenwahl input::-webkit-outer-spin-button,
+.zahlenwahl input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.zahlenwahl input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+button.stufe {
+  margin: 0;
+  padding: 4px 11px;
+  font-size: 1.1rem;
+  line-height: 1.1;
+  min-width: 2.1em;
+}
+button.stufe:first-child { border-right: none; }
+button.stufe:last-child { border-left: none; }
 .reihe > * { flex: 0 1 auto; }
 input[type=range] { accent-color: var(--rot); }
 
