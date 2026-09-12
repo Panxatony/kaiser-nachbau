@@ -76,6 +76,7 @@ jedes Byte stammt, steht in `GRAFIK.md` und `MUSIK.md`.
 | `TEXTE.md` | Was der Nachbau erklären darf: nur, was auf dem C64-Bildschirm stand oder im Handbuch steht |
 | `GRAFIK.md` | Aufbau der Grafikdaten: zwei Zeichensätze, Titel- und Abspannbild |
 | `MUSIK.md` | Die beiden SID-Stücke: Adressen, Aufbau, Wiedergabe im Browser |
+| `SECURITY.md` | Wie man eine Sicherheitslücke meldet und was dazugehört |
 | `kaiser-online/ARCHITEKTUR.md` | Client-Server-Aufbau, Nachrichtenformat, Phasen |
 | `kaiser-online/BETRIEB.md` | Betrieb als Dienst hinter einem Webserver |
 

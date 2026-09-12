@@ -1,0 +1,33 @@
+# Dependabot haelt die Abhaengigkeiten nach.
+#
+# Das Spiel selbst braucht zwei Pakete (ws und nodemailer), die Werkzeuge
+# keines. Viel gibt es also nicht zu tun -- gerade deshalb faellt es auf, wenn
+# doch einmal etwas gemeldet wird.
+version: 2
+updates:
+
+  # Der Server. package.json und package-lock.json liegen in kaiser-online/.
+  - package-ecosystem: npm
+    directory: /kaiser-online
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "Abhaengigkeit"
+    groups:
+      # Kleinkram gebuendelt, damit nicht jede Woche drei Anfragen aufgehen.
+      kleinere-aktualisierungen:
+        update-types:
+          - minor
+          - patch
+
+  # Die Actions in den Arbeitsablaeufen veralten sonst still vor sich hin.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "Arbeitsablauf"

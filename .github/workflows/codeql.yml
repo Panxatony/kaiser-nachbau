@@ -1,0 +1,55 @@
+# CodeQL durchsucht den Quelltext nach bekannten Fehlermustern.
+#
+# Zwei Sprachen sind hier zu pruefen: das Spiel in JavaScript und die
+# Werkzeuge in Python. Die Abfragen laufen bei jedem Push auf main, bei jeder
+# Anfrage dorthin und einmal die Woche -- Letzteres, weil neue Abfragen
+# hinzukommen, auch wenn sich der Quelltext nicht geaendert hat.
+name: CodeQL
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Montags um 5:40 UTC. Eine krumme Minute, damit der Lauf nicht mit
+    # tausend anderen zur vollen Stunde ansteht.
+    - cron: '40 5 * * 1'
+
+jobs:
+  analysieren:
+    name: Analyse (${{ matrix.sprache }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sprache: javascript-typescript
+            build-mode: none
+          - sprache: python
+            build-mode: none
+
+    steps:
+      - name: Quelltext holen
+        uses: actions/checkout@v4
+
+      - name: CodeQL einrichten
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.sprache }}
+          build-mode: ${{ matrix.build-mode }}
+          # security-extended nimmt zusaetzlich Abfragen mit, die eher einmal
+          # danebenliegen. Bei einem Projekt dieser Groesse ist das zu
+          # verschmerzen und der Blick dafuer schaerfer.
+          queries: security-extended
+
+      - name: Analyse
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.sprache }}"
