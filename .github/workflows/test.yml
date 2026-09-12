@@ -1,0 +1,37 @@
+# Die Tests laufen ohne Originalmaterial: kein Diskettenabbild, keine
+# Zeichensaetze, keine Musik. Genau das soll dieser Lauf jedes Mal belegen.
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [ '20', '22', '24' ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Abhaengigkeiten
+        working-directory: kaiser-online
+        run: npm ci
+      - name: Tests
+        working-directory: kaiser-online
+        run: npm test
+      - name: Server startet ohne Originalmaterial
+        working-directory: kaiser-online
+        run: |
+          PORT=8433 HOST=127.0.0.1 node server/index.js &
+          for i in $(seq 1 20); do
+            sleep 0.5
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8433/ || true)
+            [ "$code" = "200" ] && echo "Startseite antwortet mit 200" && exit 0
+          done
+          echo "Der Server hat nicht geantwortet."
+          exit 1

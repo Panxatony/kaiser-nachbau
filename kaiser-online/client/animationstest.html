@@ -1,0 +1,57 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Animationstest</title>
+<style>body{background:#111;color:#fff;font-family:monospace;margin:0;padding:12px}
+.reihe{display:flex;gap:10px;flex-wrap:wrap}
+figure{margin:0}figcaption{font-size:12px;color:#bfce72;margin-bottom:4px}
+canvas{image-rendering:pixelated;border:1px solid #555;background:#000}
+#ergebnis{margin-top:12px;font-size:13px;white-space:pre-wrap}</style></head>
+<body>
+<h3>Schlacht nachspielen: vier Zeitpunkte</h3>
+<div class="reihe" id="bilder"></div>
+<div id="ergebnis">läuft...</div>
+<script type="module">
+import { Nachspieler, feldZeichnen, ZEILEN, SPALTEN } from './schlachtfeld.js';
+import { zeichensatzBereit } from './schlachtfeld.js';
+// Datei ueber die Adresszeile waehlbar: ?datei=meine_schlacht.json
+const datei = new URLSearchParams(location.search).get('datei') || 'schlacht_probe.json';
+let daten;
+try {
+  const antwort = await fetch(datei);
+  if (!antwort.ok) throw new Error(antwort.status);
+  daten = await antwort.json();
+} catch (e) {
+  document.getElementById('ergebnis').textContent =
+    `${datei} fehlt. Erzeugen mit:\n  node werkzeuge/schlachtDump.mjs <spielId> <spielerId> client/${datei}`;
+  throw e;
+}
+await zeichensatzBereit();
+const anteile = [0, 0.33, 0.66, 1];
+const zeilenAusschnitt = 40;   // nur die oberen 40 Zeilen zeigen
+const nachher = [];
+for (const a of anteile) {
+  const fig = document.createElement('figure');
+  const cap = document.createElement('figcaption');
+  const c = document.createElement('canvas');
+  c.width = SPALTEN * 8; c.height = ZEILEN * 8;
+  c.style.width = (SPALTEN * 8) + 'px';
+  c.style.height = (zeilenAusschnitt * 8) + 'px';
+  c.style.objectFit = 'none'; c.style.objectPosition = 'top left';
+  fig.append(cap, c); document.getElementById('bilder').append(fig);
+  const n = new Nachspieler(c.getContext('2d'), daten.startbild, daten.aufzeichnung);
+  n.springen(Math.round(a * n.anzahl));
+  cap.textContent = `Bild ${n.bild} von ${n.anzahl}`;
+  nachher.push(n);
+}
+// Pruefen: Endzustand muss mit dem gelieferten Feld uebereinstimmen
+const letzter = nachher[nachher.length - 1];
+let abw = 0;
+for (let i = 0; i < letzter.feld.length; i++) if (letzter.feld[i] !== daten.feld[i]) abw++;
+// Wieviele Kacheln aendern sich zwischen erstem und letztem Bild?
+let unterschied = 0;
+for (let i = 0; i < letzter.feld.length; i++) if (letzter.feld[i] !== daten.startbild[i]) unterschied++;
+document.getElementById('ergebnis').textContent =
+  `Schlacht: ${daten.angreifer} gegen ${daten.verteidiger}\n` +
+  `Einzelbilder: ${letzter.anzahl}\n` +
+  `Abweichung Endzustand gegen Serverfeld: ${abw} Kacheln (muss 0 sein)\n` +
+  `Geaenderte Kacheln zwischen Anfang und Ende: ${unterschied}\n` +
+  `Landverschiebung: ${daten.landAngreifer}`;
+</script></body></html>

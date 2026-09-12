@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kaiser</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="rahmen">
+
+  <!-- Anmeldung -->
+  <section id="anmeldung">
+    <canvas id="titelbild" width="320" height="200"></canvas>
+    <p id="grafikHinweis" class="meldung warnung verstecken"></p>
+    <h1>Kaiser</h1>
+    <p class="klein">Heiliges Römisches Reich Deutscher Nation, ab dem Jahr 1700.
+       Alle Spieler planen ihr Jahr gleichzeitig. Erst wenn alle fertig sind, werden
+       Ernte, Steuern und Kriege abgerechnet.</p>
+    <div class="karte">
+      <div class="reihe" style="margin-bottom:10px">
+        <button id="tabAnmelden" class="gut">Anmelden</button>
+        <button id="tabRegistrieren">Neues Konto</button>
+      </div>
+      <label for="kName">Name des Fürsten (2 bis 14 Zeichen)</label>
+      <input id="kName" maxlength="14" autocomplete="username" autocapitalize="characters">
+      <label for="kKennwort">Kennwort (mindestens 4 Zeichen)</label>
+      <input id="kKennwort" type="password" autocomplete="current-password">
+      <div id="registrierFelder" class="verstecken">
+        <label for="kKennwort2">Kennwort wiederholen</label>
+        <input id="kKennwort2" type="password" autocomplete="new-password">
+      </div>
+      <div class="reihe" style="margin-top:12px">
+        <button id="anmeldeKnopf" class="gut">Anmelden</button>
+      </div>
+      <p id="anmeldeFehler" class="meldung warnung verstecken"></p>
+      <p class="klein">Das Kennwort schützt nur Ihren Platz in den Runden.
+         Nehmen Sie keine, die Sie anderswo benutzen.</p>
+    </div>
+  </section>
+
+  <!-- Lobby -->
+  <section id="lobby" class="verstecken">
+    <div class="kopf">
+      <div>
+        <h1 style="margin:0">Kaiser</h1>
+        <span class="klein" id="lobbyKonto"></span>
+      </div>
+      <div>
+        <button id="verwaltungKnopf" class="verstecken">Verwaltung</button>
+        <button id="kennwortKnopf">Kennwort ändern</button>
+        <button id="abmeldeKnopf">Abmelden</button>
+      </div>
+    </div>
+
+    <div class="karte">
+      <h2>Neue Runde eröffnen</h2>
+      <div class="reihe">
+        <div>
+          <label for="nRundeName">Name der Runde</label>
+          <input id="nRundeName" maxlength="40" placeholder="Abendrunde" style="width:220px">
+        </div>
+        <div>
+          <label for="nRegelwerk">Regelwerk</label>
+          <select id="nRegelwerk">
+            <option value="original">Original 1984</option>
+            <option value="neu">Fassung 2026</option>
+          </select>
+        </div>
+        <div>
+          <label for="nAnrede">Anrede</label>
+          <select id="nAnrede">
+            <option value="m">männlich</option>
+            <option value="w">weiblich</option>
+          </select>
+        </div>
+      </div>
+      <div class="reihe">
+        <div>
+          <label for="nPlanung">Planung (Sekunden, 0 = ohne Frist)</label>
+          <input id="nPlanung" type="number" min="0" value="300" style="width:120px">
+        </div>
+        <div>
+          <label for="nDiplo">Diplomatie (Sekunden)</label>
+          <input id="nDiplo" type="number" min="0" value="120" style="width:120px">
+        </div>
+        <button id="rundeAnlegen" class="gut">Runde eröffnen</button>
+      </div>
+      <div>
+        <p class="klein" id="regelHinweis"></p>
+      </div>
+    </div>
+
+    <p id="lobbyFehler" class="meldung warnung verstecken"></p>
+    <p id="lobbyHinweis" class="meldung gut verstecken"></p>
+    <p id="kennwortHinweis" class="meldung warnung verstecken"></p>
+
+    <div class="karte verstecken" id="kennwortKarte">
+      <h2>Kennwort ändern</h2>
+      <div class="reihe">
+        <div><label for="kwAlt">Bisheriges Kennwort</label>
+          <input id="kwAlt" type="password" autocomplete="current-password" style="width:200px"></div>
+        <div><label for="kwNeu">Neues Kennwort</label>
+          <input id="kwNeu" type="password" autocomplete="new-password" style="width:200px"></div>
+        <div><label for="kwNeu2">Wiederholen</label>
+          <input id="kwNeu2" type="password" autocomplete="new-password" style="width:200px"></div>
+        <button id="kennwortSpeichern" class="gut">Ändern</button>
+      </div>
+      <p class="klein">Mindestens vier Zeichen. Danach werden alle Ihre Sitzungen beendet
+         und Sie melden sich neu an.</p>
+    </div>
+
+    <!-- Nur für Verwalter -->
+    <div class="karte verstecken" id="verwaltungKarte">
+      <h2>Verwaltung</h2>
+      <div id="verwaltungInhalt"></div>
+    </div>
+
+    <div class="karte">
+      <h2>Spielslots</h2>
+      <div id="rundenListe"></div>
+    </div>
+  </section>
+
+  <!-- Warteraum -->
+  <section id="warteraum" class="verstecken">
+    <div class="kopf">
+      <div>
+        <h1 id="warteraumTitel" style="margin:0">Kaiser</h1>
+        <span class="klein">Warten auf Mitspieler</span>
+      </div>
+      <div>
+        <button id="warteraumLobby">Zur Lobby</button>
+      </div>
+    </div>
+    <div class="karte">
+      <h2>Plätze in dieser Runde</h2>
+      <div class="tabellenhuelle"><table id="warteListe"></table></div>
+    </div>
+    <div class="karte">
+      <h3>Zeitvorgaben</h3>
+      <div class="reihe">
+        <div>
+          <label for="planungsZeit">Planung (Sekunden, 0 = ohne Frist)</label>
+          <input id="planungsZeit" type="number" min="0" value="300" style="width:120px">
+        </div>
+        <div>
+          <label for="diploZeit">Diplomatie (Sekunden)</label>
+          <input id="diploZeit" type="number" min="0" value="120" style="width:120px">
+        </div>
+        <button id="zeitenSpeichern">Übernehmen</button>
+      </div>
+      <div class="reihe" style="margin-top:12px">
+        <button id="starten" class="gut">Spiel starten</button>
+        <button id="warteraumVerlassen" class="gefahr">Platz aufgeben</button>
+      </div>
+      <p class="klein">Die Runde kann von jedem Teilnehmer gestartet werden.
+         Wer zur Lobby geht, behält seinen Platz.</p>
+    </div>
+  </section>
+
+  <!-- Spiel -->
+  <section id="spiel" class="verstecken">
+    <div class="kopf">
+      <div>
+        <span class="jahr" id="jahr"></span>
+        <span id="anrede" class="klein"></span>
+      </div>
+      <div>
+        <span class="phase" id="phaseAnzeige"></span>
+        <span class="frist" id="fristAnzeige"></span>
+        <button id="musikKnopf" class="musik" title="Titelmusik des Originals">♪ Musik</button>
+        <button id="tonKnopf" class="musik" title="Geräusche des Originals">Ton</button>
+        <button id="zurLobby" title="Zurück zur Übersicht">Lobby</button>
+      </div>
+    </div>
+
+    <div id="fehlerFeld"></div>
+
+    <!-- Oben wird gehandelt: Schrittleiste und die Karte des laufenden Schritts -->
+    <div id="schrittLeiste" class="verstecken"></div>
+
+    <div class="karte handlung" id="planungKarte">
+      <div class="kartenkopf">
+        <h2>Planung</h2>
+        <button id="hilfeKnopf" class="hilfe" title="Erklärung zu diesem Schritt">? Hilfe</button>
+      </div>
+      <div id="planungInhalt"></div>
+    </div>
+
+    <div class="karte handlung verstecken" id="diplomatieKarte">
+      <h2>Diplomatie</h2>
+      <div id="diplomatieInhalt"></div>
+    </div>
+
+    <!-- Truppenaufstellung waehrend der Diplomatiephase -->
+    <div class="karte handlung verstecken" id="aufstellungKarte">
+      <h2>Truppen aufstellen</h2>
+      <div id="aufstellungInhalt"></div>
+      <div class="feldhuelle"><canvas id="aufstellungsfeld" width="320" height="608"></canvas></div>
+      <div class="truppenlegende" id="aufstellungLegende"></div>
+    </div>
+
+    <!-- Unten stehen die Auskünfte -->
+    <div class="spalten">
+      <div>
+        <div class="karte">
+          <h2>Ihr Reich</h2>
+          <div class="werte" id="werte"></div>
+          <div id="kornBalken"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="karte">
+          <h2>Fürstentümer</h2>
+          <div class="tabellenhuelle"><table id="spielstand"></table></div>
+        </div>
+        <div class="karte">
+          <h2>Meldungen</h2>
+          <div id="meldungen"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="karte verstecken" id="reichKarte">
+      <div class="kartenkopf">
+        <h2>Das Reich</h2>
+        <button id="reichKnopf">Einklappen</button>
+      </div>
+      <div id="reichInhalt"></div>
+    </div>
+
+    <div class="karte verstecken" id="karteKarte">
+      <div class="kartenkopf">
+        <h2>Karte des Reiches</h2>
+        <button id="karteKnopf">Einklappen</button>
+      </div>
+      <div class="kartenhuelle"><canvas id="reichskarte" width="1184" height="176"></canvas></div>
+      <div id="kartenlegende" class="klein"></div>
+    </div>
+
+    <div class="karte verstecken" id="berichtKarte">
+      <h2>Jahresbericht</h2>
+      <div id="bericht"></div>
+    </div>
+
+    <div class="karte verstecken" id="schlachtKarte">
+      <h2>Schlachtfeld</h2>
+      <div class="reihe">
+        <button id="schlachtZurueck">&lt; Schlacht</button>
+        <span id="schlachtName" class="klein"></span>
+        <button id="schlachtVor">Schlacht &gt;</button>
+      </div>
+      <div class="reihe" id="abspielLeiste">
+        <button id="abspielen" class="gut">Schlacht abspielen</button>
+        <button id="einBild">Einzelbild</button>
+        <button id="zumEnde">Zum Ende</button>
+        <label for="tempo" class="klein" style="margin:0">Tempo</label>
+        <input id="tempo" type="range" min="4" max="120" value="24" style="width:140px">
+        <span id="fortschritt" class="klein"></span>
+      </div>
+      <input id="zeitleiste" type="range" min="0" max="0" value="0" style="width:100%;margin:8px 0">
+      <div class="feldhuelle"><canvas id="schlachtfeld" width="320" height="608"></canvas></div>
+      <p class="klein">Links der Angreifer, rechts der Verteidiger.</p>
+      <div class="truppenlegende" id="schlachtLegende"></div>
+    </div>
+
+
+  </section>
+
+</div>
+
+<!-- Hilfe zum laufenden Schritt -->
+<!-- Die Vollbildschirme des Originals: Titel, Kroenung, Bankrott, Enthebung -->
+<div id="zeremonieSchirm" class="verstecken" role="dialog" aria-modal="true" aria-labelledby="zeremonieTitel">
+  <div class="zeremonieblatt">
+    <h2 id="zeremonieTitel"></h2>
+    <div id="zeremonieText"></div>
+    <canvas id="zeremonieKrone" class="verstecken"></canvas>
+    <div id="zeremonieBildhuelle" class="verstecken"><img id="zeremonieBild" alt="Abspannbild"></div>
+    <button id="zeremonieWeiter" class="gut">Knopf drücken</button>
+  </div>
+</div>
+
+<div id="hilfeSchirm" class="verstecken" role="dialog" aria-modal="true" aria-labelledby="hilfeTitel">
+  <div class="hilfeblatt">
+    <div class="kartenkopf">
+      <h2 id="hilfeTitel"></h2>
+      <button id="hilfeZu" title="Schließen">Schließen</button>
+    </div>
+    <div id="hilfeInhalt"></div>
+    <p class="klein">Hier steht nur, was auch ein Spieler von 1984 wissen konnte:
+      was auf dem C64-Bildschirm stand und was im gedruckten Handbuch steht.
+      Ratschläge sind als „Aus dem Handbuch“ gekennzeichnet.</p>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

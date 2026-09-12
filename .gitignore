@@ -1,0 +1,28 @@
+# Originalmaterial gehört nicht ins Repo.
+# Es lässt sich mit den Werkzeugen aus einem eigenen kaiser.d64 wieder
+# erzeugen, siehe README.
+kaiser.d64
+extracted/
+musik/
+kaiser-online/client/assets/
+
+# Abhängigkeiten
+node_modules/
+
+# Laufzeitdaten: Konten und Spielstände
+kaiser-online/daten/
+daten/
+
+# Prüfausgaben
+*.log
+kaiser-online/client/schlacht_probe.json
+
+# Python
+__pycache__/
+*.pyc
+kaiser-online/client/_*.html
+kaiser-online/client/_*.json
+
+# Handbuch und Cover des Originals, nicht ins Repo
+kaiser_anl/
+kaiser_cov/

@@ -1,0 +1,11 @@
+node_modules/
+daten/
+*.log
+client/schlacht_probe.json
+
+# Zugangsdaten für den Mailversand
+.env
+*.env
+
+# Die eigenen Server, Adressen und Pfade dieser Installation
+BETRIEB.lokal.md

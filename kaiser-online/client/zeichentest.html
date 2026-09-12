@@ -1,0 +1,23 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Zeichentest</title>
+<style>body{background:#111;color:#fff;font-family:monospace;margin:0;padding:16px}
+canvas{image-rendering:pixelated;border:1px solid #555;display:block;margin:8px 0}</style></head>
+<body>
+<h3>Kartensatz normal (Codes 0-127)</h3><canvas id="a" width="512" height="256"></canvas>
+<h3>Kartensatz invers (Codes 128-255)</h3><canvas id="b" width="512" height="256"></canvas>
+<h3>Legende: Verteidiger / Angreifer</h3><canvas id="c" width="512" height="64"></canvas>
+<script type="module">
+import { zeichensatzLaden, zeichen, FARBEN } from './c64.js';
+await zeichensatzLaden('assets/charset_map.png');
+const S=4;
+for (const [id, versatz, farbe] of [['a',0,FARBEN[14]],['b',128,FARBEN[10]]]) {
+  const k=document.getElementById(id).getContext('2d');
+  for (let i=0;i<128;i++) zeichen(k,i+versatz,(i%16)*S*8,Math.floor(i/16)*S*8,S*8,farbe);
+}
+const k=document.getElementById('c').getContext('2d');
+// Kavallerie, Artillerie, Infanterie, Miliz, Markt, Muehle, Baum, Fluss
+const paare=[[109,110],[113,114],[103,104],[105,106],[27,28],[115,116],[107,108],[119,120]];
+paare.forEach(([l,r],i)=>{
+  zeichen(k,l,i*64,0,32,FARBEN[14]); zeichen(k,r,i*64+32,0,32,FARBEN[14]);
+  zeichen(k,l+128,i*64,32,32,FARBEN[10]); zeichen(k,r+128,i*64+32,32,32,FARBEN[10]);
+});
+</script></body></html>

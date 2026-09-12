@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Kaiser - Musiktest</title>
+<style>
+  body { font-family: monospace; background:#20204a; color:#e8e8ff; margin:0; padding:16px; }
+  h1 { font-size:20px; margin:0 0 12px; color:#ffd45e; }
+  h2 { font-size:15px; margin:18px 0 6px; color:#9ad0ff; }
+  table { border-collapse:collapse; font-size:13px; }
+  td { padding:2px 12px 2px 0; vertical-align:top; }
+  td.w { color:#ffd45e; }
+  canvas { background:#101030; border:1px solid #5555aa; display:block; margin:6px 0; max-width:100%; }
+  #zustand { padding:6px 10px; display:inline-block; border-radius:4px; font-weight:bold; }
+  .gut { background:#1e7a2e; color:#fff; }
+  .schlecht { background:#a01818; color:#fff; }
+  button { font-family:monospace; font-size:14px; padding:6px 12px; margin-right:6px; }
+  pre { font-size:12px; line-height:1.35; margin:4px 0; }
+</style>
+</head>
+<body>
+<h1>Kaiser (Sir Aliba, 1985) &ndash; SID-Musiktest</h1>
+<div id="zustand">laeuft ...</div>
+
+<h2>Kopfdaten der .sid-Datei</h2>
+<table id="kopf"></table>
+
+<h2>Kennzahlen des offline erzeugten Klangs</h2>
+<table id="werte"></table>
+
+<h2>Erkannte Grundfrequenzen je 0,25 s</h2>
+<pre id="toene"></pre>
+
+<h2>Wellenform</h2>
+<canvas id="hueller" width="900" height="140"></canvas>
+<canvas id="welle" width="900" height="140"></canvas>
+
+<h2>Frequenzspektrum (0 &ndash; 4000 Hz, Ausschnitt bei 1,0 s)</h2>
+<canvas id="spektrum" width="900" height="180"></canvas>
+
+<h2>Direkte Wiedergabe</h2>
+<button id="start">abspielen()</button>
+<button id="stopp">anhalten()</button>
+<label>Lautstaerke <input id="laut" type="range" min="0" max="100" value="50"></label>
+
+<script type="module">
+import * as musik from './sid.js';
+
+// Mit ?datei=assets/kaiser_abspann.sid laesst sich das zweite Stueck pruefen.
+const PARAMETER = new URLSearchParams(location.search);
+const DATEI = PARAMETER.get('datei') || 'assets/kaiser_titel.sid';
+// Die Titelmusik endet nach 2688 Play-Aufrufen (alle drei Stimmen summieren
+// sich genau auf 2688 Ticks); danach wird sie wiederholt.
+const NEUSTART = DATEI.indexOf('titel') >= 0 ? 2688 : -1;
+const RATE = 44100;
+const SEKUNDEN = 12;
+
+// ---------- kleine Hilfsmittel ----------------------------------------
+function zeile(tabelle, name, wert) {
+  const tr = document.createElement('tr');
+  const a = document.createElement('td'); a.textContent = name; a.className = 'w';
+  const b = document.createElement('td'); b.textContent = wert;
+  tr.appendChild(a); tr.appendChild(b); tabelle.appendChild(tr);
+}
+
+// Radix-2-FFT auf Real- und Imaginaerteil (an Ort und Stelle)
+function fft(re, im) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t;
+                 t = im[i]; im[i] = im[j]; im[j] = t; }
+  }
+  for (let laenge = 2; laenge <= n; laenge <<= 1) {
+    const winkel = -2 * Math.PI / laenge;
+    const wr = Math.cos(winkel), wi = Math.sin(winkel);
+    for (let i = 0; i < n; i += laenge) {
+      let cr = 1, ci = 0;
+      for (let k = 0; k < laenge / 2; k++) {
+        const ur = re[i + k], ui = im[i + k];
+        const vr = re[i + k + laenge / 2] * cr - im[i + k + laenge / 2] * ci;
+        const vi = re[i + k + laenge / 2] * ci + im[i + k + laenge / 2] * cr;
+        re[i + k] = ur + vr; im[i + k] = ui + vi;
+        re[i + k + laenge / 2] = ur - vr; im[i + k + laenge / 2] = ui - vi;
+        const nr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = nr;
+      }
+    }
+  }
+}
+
+const NAMEN = ['C','Cis','D','Dis','E','F','Fis','G','Gis','A','Ais','H'];
+function tonname(f) {
+  if (f <= 0) return '-';
+  const h = Math.round(12 * Math.log2(f / 440)) + 57;
+  return NAMEN[((h % 12) + 12) % 12] + Math.floor(h / 12);
+}
+
+function spektrumVon(daten, versatz, n) {
+  const re = new Float64Array(n), im = new Float64Array(n);
+  for (let k = 0; k < n; k++) {
+    const fenster = 0.5 - 0.5 * Math.cos(2 * Math.PI * k / (n - 1));
+    re[k] = (daten[versatz + k] || 0) * fenster;
+  }
+  fft(re, im);
+  const betrag = new Float64Array(n / 2);
+  for (let k = 0; k < n / 2; k++) betrag[k] = Math.hypot(re[k], im[k]);
+  return betrag;
+}
+
+function spitzen(betrag, rate, n, anzahl) {
+  const kand = [];
+  for (let k = 2; k < n / 2 - 1; k++) {
+    if (betrag[k] > betrag[k - 1] && betrag[k] >= betrag[k + 1] && betrag[k] > 0.4) {
+      kand.push([betrag[k], k * rate / n]);
+    }
+  }
+  kand.sort((a, b) => b[0] - a[0]);
+  const raus = [];
+  for (const [, f] of kand) {
+    if (raus.some(g => Math.abs(g - f) < 20)) continue;
+    raus.push(f);
+    if (raus.length >= anzahl) break;
+  }
+  return raus;
+}
+
+// ---------- Klangdaten im Browser erzeugen -----------------------------
+async function offlineRendern(rohMusik) {
+  // Der Weg ueber OfflineAudioContext + AudioWorklet ist genau der,
+  // den auch abspielen() benutzt. Klappt der Worklet nicht, wird der
+  // Klang direkt aus dem Motor geholt.
+  const kontext = new OfflineAudioContext(1, RATE * SEKUNDEN, RATE);
+  try {
+    const knoten = await Promise.race([
+      musik.workletKnoten(kontext),
+      new Promise((_, ab) => setTimeout(
+        () => ab(new Error('AudioWorklet antwortet nicht')), 8000))
+    ]);
+    knoten.connect(kontext.destination);
+    const puffer = await kontext.startRendering();
+    return { weg: 'OfflineAudioContext + AudioWorklet',
+             daten: puffer.getChannelData(0) };
+  } catch (fehler) {
+    const roh = musik.rendern(SEKUNDEN, RATE);
+    const puffer = kontext.createBuffer(1, roh.length, RATE);
+    puffer.getChannelData(0).set(roh);
+    const quelle = kontext.createBufferSource();
+    quelle.buffer = puffer;
+    quelle.connect(kontext.destination);
+    quelle.start();
+    const fertig = await kontext.startRendering();
+    return { weg: 'OfflineAudioContext + AudioBufferSource (Worklet nicht nutzbar: '
+                  + fehler.message + ')',
+             daten: fertig.getChannelData(0) };
+  }
+}
+
+// Erzeugt aus Float-Werten eine WAV-Datei (16 Bit, mono) als Base64.
+function wavBase64(daten, rate) {
+  const n = daten.length;
+  const b = new ArrayBuffer(44 + n * 2);
+  const v = new DataView(b);
+  const text = (versatz, s) => { for (let i = 0; i < s.length; i++) v.setUint8(versatz + i, s.charCodeAt(i)); };
+  text(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); text(8, 'WAVE');
+  text(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+  v.setUint16(22, 1, true); v.setUint32(24, rate, true);
+  v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  text(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) {
+    const x = Math.max(-1, Math.min(1, daten[i]));
+    v.setInt16(44 + i * 2, Math.round(x * 32767), true);
+  }
+  const bytes = new Uint8Array(b);
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 8192) {
+    s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+  }
+  return btoa(s);
+}
+
+// ---------- Zeichnen ---------------------------------------------------
+function huellkurveZeichnen(daten) {
+  const c = document.getElementById('hueller');
+  const g = c.getContext('2d');
+  g.fillStyle = '#101030'; g.fillRect(0, 0, c.width, c.height);
+  g.strokeStyle = '#4a4a90'; g.beginPath();
+  g.moveTo(0, c.height / 2); g.lineTo(c.width, c.height / 2); g.stroke();
+  g.fillStyle = '#7ef07e';
+  const proSpalte = Math.floor(daten.length / c.width);
+  for (let x = 0; x < c.width; x++) {
+    let lo = 1, hi = -1;
+    for (let i = 0; i < proSpalte; i++) {
+      const v = daten[x * proSpalte + i];
+      if (v < lo) lo = v; if (v > hi) hi = v;
+    }
+    const y1 = (1 - hi) * c.height / 2, y2 = (1 - lo) * c.height / 2;
+    g.fillRect(x, y1, 1, Math.max(1, y2 - y1));
+  }
+  g.fillStyle = '#ffd45e'; g.font = '12px monospace';
+  g.fillText('Gesamtverlauf ueber ' + SEKUNDEN + ' s', 6, 14);
+}
+
+function welleZeichnen(daten) {
+  const c = document.getElementById('welle');
+  const g = c.getContext('2d');
+  g.fillStyle = '#101030'; g.fillRect(0, 0, c.width, c.height);
+  g.strokeStyle = '#4a4a90'; g.beginPath();
+  g.moveTo(0, c.height / 2); g.lineTo(c.width, c.height / 2); g.stroke();
+  const versatz = Math.floor(RATE * 1.0);
+  const anzahl = Math.floor(RATE * 0.02);       // 20 ms
+  g.strokeStyle = '#7ec8ff'; g.lineWidth = 1.5; g.beginPath();
+  for (let x = 0; x < c.width; x++) {
+    const v = daten[versatz + Math.floor(x * anzahl / c.width)];
+    const y = (1 - v) * c.height / 2;
+    if (x === 0) g.moveTo(x, y); else g.lineTo(x, y);
+  }
+  g.stroke();
+  g.fillStyle = '#ffd45e'; g.font = '12px monospace';
+  g.fillText('20 ms ab Sekunde 1', 6, 14);
+}
+
+function spektrumZeichnen(betrag) {
+  const c = document.getElementById('spektrum');
+  const g = c.getContext('2d');
+  g.fillStyle = '#101030'; g.fillRect(0, 0, c.width, c.height);
+  const n = 4096;
+  const maxK = Math.floor(4000 * n / RATE);
+  let hoechst = 0;
+  for (let k = 1; k < maxK; k++) if (betrag[k] > hoechst) hoechst = betrag[k];
+  g.fillStyle = '#ff8ad0';
+  for (let x = 0; x < c.width; x++) {
+    const k = 1 + Math.floor(x * maxK / c.width);
+    const h = (betrag[k] / (hoechst || 1)) * (c.height - 20);
+    g.fillRect(x, c.height - h, 1, h);
+  }
+  g.fillStyle = '#ffd45e'; g.font = '12px monospace';
+  for (let hz = 0; hz <= 4000; hz += 500) {
+    const x = hz * c.width / 4000;
+    g.fillRect(x, c.height - 6, 1, 6);
+    g.fillText(hz, Math.min(x + 2, c.width - 30), c.height - 8);
+  }
+}
+
+// ---------- Ablauf -----------------------------------------------------
+(async function () {
+  const zustand = document.getElementById('zustand');
+  try {
+    const info = await musik.musikLaden(DATEI, { neustartNachAufrufen: NEUSTART });
+    const kopf = document.getElementById('kopf');
+    zeile(kopf, 'Datei', DATEI);
+    zeile(kopf, 'name', info.name);
+    zeile(kopf, 'author', info.autor);
+    zeile(kopf, 'released', info.jahr);
+    zeile(kopf, 'loadAddress', '$' + info.ladeadresse.toString(16).toUpperCase());
+    zeile(kopf, 'initAddress', '$' + info.initAdresse.toString(16).toUpperCase());
+    zeile(kopf, 'playAddress', '$' + info.playAdresse.toString(16).toUpperCase());
+    zeile(kopf, 'songs', info.lieder);
+    zeile(kopf, 'speed', info.speed + (info.speed & 1 ? ' (CIA-Timer)' : ' (50 Hz)'));
+    zeile(kopf, 'Nutzdaten', info.bytes + ' Bytes');
+
+    const ergebnis = await offlineRendern();
+    const d = ergebnis.daten;
+
+    let quadratsumme = 0, min = 1, max = -1, nulldurchgaenge = 0, stille = 0;
+    for (let i = 0; i < d.length; i++) {
+      quadratsumme += d[i] * d[i];
+      if (d[i] < min) min = d[i];
+      if (d[i] > max) max = d[i];
+      if (Math.abs(d[i]) < 1e-6) stille++;
+      if (i && ((d[i] >= 0) !== (d[i - 1] >= 0))) nulldurchgaenge++;
+    }
+    const effektivwert = Math.sqrt(quadratsumme / d.length);
+
+    const w = document.getElementById('werte');
+    zeile(w, 'Weg', ergebnis.weg);
+    zeile(w, 'Abtastrate', RATE + ' Hz');
+    zeile(w, 'Dauer', SEKUNDEN + ' s (' + d.length + ' Werte)');
+    zeile(w, 'Effektivwert (RMS)', effektivwert.toFixed(5));
+    zeile(w, 'Minimum', min.toFixed(5));
+    zeile(w, 'Maximum', max.toFixed(5));
+    zeile(w, 'Nulldurchgaenge', nulldurchgaenge + ' (' +
+              (nulldurchgaenge / (2 * SEKUNDEN)).toFixed(1) + ' Hz mittlere Grundlage)');
+    zeile(w, 'Werte nahe null', (100 * stille / d.length).toFixed(2) + ' %');
+
+    // Grundfrequenzen je Viertelsekunde
+    const n = 4096;
+    const texte = [];
+    for (let t = 0; t + 0.1 < SEKUNDEN; t += 0.25) {
+      const versatz = Math.floor(t * RATE);
+      if (versatz + n >= d.length) break;
+      const betrag = spektrumVon(d, versatz, n);
+      const f = spitzen(betrag, RATE, n, 3);
+      texte.push(t.toFixed(2).padStart(6) + ' s   ' +
+        (f.length ? f.map(x => (Math.round(x) + ' Hz ' + tonname(x)).padEnd(16)).join('') : '(still)'));
+    }
+    document.getElementById('toene').textContent = texte.join('\n');
+
+    huellkurveZeichnen(d);
+    welleZeichnen(d);
+    spektrumZeichnen(spektrumVon(d, Math.floor(RATE * 1.0), n));
+
+    // WAV zum Herunterladen bereitstellen und Pruefsumme veroeffentlichen
+    window.wavBase64 = wavBase64(d, RATE);
+    const link = document.createElement('a');
+    link.href = 'data:audio/wav;base64,' + window.wavBase64;
+    link.download = 'kaiser_titel.wav';
+    link.textContent = 'WAV der ersten ' + SEKUNDEN + ' s herunterladen';
+    link.style.color = '#9ad0ff';
+    document.body.appendChild(link);
+    window.testErgebnis = { effektivwert, min, max, nulldurchgaenge,
+                            laenge: d.length, weg: ergebnis.weg };
+
+    const inOrdnung = effektivwert > 0.01 && max > 0.05 && min < -0.05 &&
+                      nulldurchgaenge > 100;
+    zustand.textContent = inOrdnung
+      ? 'ERGEBNIS: Ton vorhanden. RMS ' + effektivwert.toFixed(4) +
+        ', ' + nulldurchgaenge + ' Nulldurchgaenge.'
+      : 'ERGEBNIS: KEIN TON!';
+    zustand.className = inOrdnung ? 'gut' : 'schlecht';
+  } catch (fehler) {
+    zustand.textContent = 'FEHLER: ' + fehler.message;
+    zustand.className = 'schlecht';
+    const p = document.createElement('pre');
+    p.textContent = fehler.stack || '';
+    document.body.appendChild(p);
+  }
+})();
+
+document.getElementById('start').onclick = () => musik.abspielen();
+document.getElementById('stopp').onclick = () => musik.anhalten();
+document.getElementById('laut').oninput = (e) => musik.lautstaerke(e.target.value / 100);
+</script>
+</body>
+</html>
