@@ -270,7 +270,7 @@ function lobbyZeichnen() {
       // Das Fuerstentum richtet sich nach der Sitzreihenfolge, wie im Original.
       knoepfe = `
         <span class="klein">Sie regieren ${esc(r.naechsteRegion)}.</span>
-        <select data-anrede="${r.id}">
+        <select data-anrede="${esc(r.id)}">
           <option value="m"${konto && !konto.weiblich ? ' selected' : ''}>männlich</option>
           <option value="w"${konto && konto.weiblich ? ' selected' : ''}>weiblich</option>
         </select>
@@ -366,7 +366,7 @@ function verwaltungZeichnen() {
     ${verwaltung.post && verwaltung.post.bereit ? `
     <p class="klein">Der Server würfelt ein Kennwort und schickt es an die angegebene
        Adresse. Sie selbst bekommen sie nicht zu sehen. Absender ist
-       ${verwaltung.post.absender}, das Tor steht unter ${verwaltung.post.adresse}.</p>
+       ${esc(verwaltung.post.absender)}, das Tor steht unter ${esc(verwaltung.post.adresse)}.</p>
     <div class="reihe">
       <div><label for="eName">Name des Fürsten</label><input id="eName" maxlength="14" style="width:160px"></div>
       <div><label for="eMail">Mailadresse</label><input id="eMail" type="email" style="width:230px"></div>
@@ -519,7 +519,7 @@ function werteZeichnen() {
     ['Miliz', i.miliz]
   ];
   $('werte').innerHTML = werte.map(([n, v]) =>
-    `<div class="wert"><div class="name">${n}</div><div class="zahl">${v}</div></div>`).join('');
+    `<div class="wert"><div class="name">${n}</div><div class="zahl">${esc(v)}</div></div>`).join('');
 
   speicherZeigen($('kornBalken'), i, 4);
 }
@@ -563,7 +563,7 @@ function meldungenZeichnen() {
   const m = (zustand.runde && zustand.runde.meldungen) || [];
   $('meldungen').innerHTML = m.length
     ? m.map(x => `<div class="meldung ${x.art === 'warnung' || x.art === 'bankrott' || x.art === 'amtsenthebung' || x.art === 'tod' ? 'warnung' : (x.art === 'titel' ? 'gut' : '')}">${esc(x.text)}
-        ${x.verlust ? '<ul>' + x.verlust.map(v => `<li>${v.anzahl} ${v.was}</li>`).join('') + '</ul>' : ''}</div>`).join('')
+        ${x.verlust ? '<ul>' + x.verlust.map(v => `<li>${zahl(v.anzahl)} ${esc(v.was)}</li>`).join('') + '</ul>' : ''}</div>`).join('')
     : '<p class="klein">Keine Meldungen.</p>';
 }
 
