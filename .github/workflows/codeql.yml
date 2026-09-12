@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Quelltext holen
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: CodeQL einrichten
         uses: github/codeql-action/init@v3
