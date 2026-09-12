@@ -974,6 +974,29 @@ function eingabeWiederherstellen(bereich, m) {
 function ereignisseBinden(r, i) {
   const ziel = $('planungInhalt');
 
+  // Die Knoepfe an den Zahlenfeldern und dieselbe Bewegung auf der Tastatur.
+  const stufen = (feld, um) => {
+    const min = feld.min === '' ? -Infinity : Number(feld.min);
+    const max = feld.max === '' ? Infinity : Number(feld.max);
+    const wert = Number(feld.value || 0) + um;
+    feld.value = String(Math.max(min, Math.min(max, Math.round(wert))));
+  };
+  ziel.querySelectorAll('[data-stufe]').forEach(b => b.onclick = () => {
+    const feld = $(b.dataset.ziel);
+    if (!feld) return;
+    Klang.klick();
+    stufen(feld, Number(b.dataset.stufe));
+    feld.focus();
+  });
+  ziel.querySelectorAll('.zahlenwahl input').forEach(feld => feld.onkeydown = e => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    // Safari zaehlt ein Zahlenfeld mit den Pfeiltasten nicht hoch; hier tun
+    // wir es selbst, damit es ueberall gleich geht.
+    e.preventDefault();
+    const schritt = Number(feld.step || 1) * (e.shiftKey ? 10 : 1);
+    stufen(feld, e.key === 'ArrowUp' ? schritt : -schritt);
+  });
+
   ziel.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => {
     planungsSchritt += Number(b.dataset.nav);
     planungZeichnen();
