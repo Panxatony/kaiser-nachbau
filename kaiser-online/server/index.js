@@ -92,8 +92,32 @@ function quelleVon(req) {
   return erster || direkt;
 }
 
+/**
+ * Die Fassung des Clients, als Fingerabdruck ueber alles, was der Browser
+ * laedt. Sie geht mit jeder Nachricht hinaus.
+ *
+ * Ein Browserfenster, das seit Stunden offen steht, hat seinen Quelltext von
+ * damals -- es fragt ihn nicht noch einmal nach, so wie es die Kopfzeilen
+ * verlangen wuerden. Nach einem Aufspielen sass so ein Fenster also auf der
+ * alten Fassung und tat Dinge, die der Server gar nicht mehr kennt. Mit dieser
+ * Marke merkt es das selbst und bittet ums Neuladen.
+ */
+const FASSUNG = (() => {
+  const h = crypto.createHash('sha1');
+  const sammeln = verzeichnis => {
+    for (const e of fs.readdirSync(verzeichnis, { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : 1)) {
+      const voll = path.join(verzeichnis, e.name);
+      if (e.isDirectory()) { sammeln(voll); continue; }
+      if (!/\.(js|css|html)$/.test(e.name)) continue;
+      h.update(e.name).update(fs.readFileSync(voll));
+    }
+  };
+  try { sammeln(CLIENT); } catch { return 'unbekannt'; }
+  return h.digest('hex').slice(0, 12);
+})();
+
 function senden(ws, typ, daten) {
-  if (ws.readyState === 1) ws.send(JSON.stringify({ typ, ...daten }));
+  if (ws.readyState === 1) ws.send(JSON.stringify({ typ, fassung: FASSUNG, ...daten }));
 }
 
 /** Schickt einer Verbindung den passenden Bildschirm. */

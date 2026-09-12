@@ -56,6 +56,7 @@ function verbinden() {
   };
   ws.onmessage = ev => {
     const n = JSON.parse(ev.data);
+    fassungPruefen(n.fassung);
     if (n.typ === 'angemeldet') {
       kennung = n.kennung; konto = n.konto;
       localStorage.setItem('kaiser.kennung', kennung);
@@ -84,6 +85,31 @@ function verbinden() {
     fehlerZeigen('Verbindung getrennt. Neuer Versuch in 3 Sekunden.');
     setTimeout(verbinden, 3000);
   };
+}
+
+/**
+ * Merkt sich, mit welcher Fassung dieses Fenster gestartet ist.
+ *
+ * Ein Fenster, das seit Stunden offen steht, hat seinen Quelltext von damals;
+ * es fragt ihn nicht noch einmal nach. Nach einem Aufspielen sass es darum auf
+ * der alten Fassung und tat Dinge, die der Server nicht mehr kennt -- beim
+ * Umbau der Aufstellung ist genau das passiert. Der Server schickt seine
+ * Fassung mit jeder Nachricht mit; weicht sie ab, sagen wir es.
+ */
+let meineFassung = null;
+
+function fassungPruefen(fassung) {
+  if (!fassung) return;
+  if (!meineFassung) { meineFassung = fassung; return; }
+  if (fassung === meineFassung) return;
+  if ($('neueFassung')) return;                 // steht schon da
+  const balken = document.createElement('div');
+  balken.id = 'neueFassung';
+  balken.className = 'neuefassung';
+  balken.innerHTML = 'Es gibt eine neue Fassung des Spiels. '
+    + '<button type="button">Jetzt neu laden</button>';
+  balken.querySelector('button').onclick = () => location.reload();
+  document.body.prepend(balken);
 }
 
 function sende(typ, daten = {}) {
