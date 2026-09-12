@@ -224,6 +224,32 @@ aber jede Seite darf bis an den eigenen Rand und bis an die Grenze wandern. In
 eine Zeile passen mehrere Einheiten nebeneinander; Zeile 0 und 75 sind gesperrt
 (Zeile 98 und 103).
 
+**Wer wann setzt** (Zeile 292 bis 295): abwechselnd, eine Einheit nach der
+anderen, und der Überschuss der stärkeren Seite zuerst.
+
+```
+292 FORi=0TO1
+293 IFz(i,0)>z(1-i,0)THENGOSUB353:GOTO293     solange i mehr hat: i setzt
+294 NEXT
+295 FORi=0TO1:GOSUB353:NEXT:IFz(1,0)>0THEN295 danach je einer, bis nichts bleibt
+```
+
+`z(i,0)` ist die Soldatenzahl der Seite, die je gesetzter Einheit um 20 fällt.
+In eine Regel gefasst: **es setzt, wer mehr übrig hat; bei Gleichstand der
+Angreifer.** Beide sitzen vor demselben Bildschirm und sehen einander dabei zu;
+der Angreifer benutzt den Steuerknüppel an Anschluss 1, der Verteidiger den an
+Anschluss 2 (Handbuch, Seite 14). Gleichzeitig setzen konnte trotzdem niemand,
+das Programm wartet immer auf genau einen.
+
+Eine gesetzte Einheit lässt sich **nicht zurücknehmen**: Zeile 362 setzt sie,
+Zeile 356 zieht sie vom Vorrat ab, und es gibt keinen Zweig zurück. Ein Klick
+auf eine besetzte Stelle gibt nur den Fehlerton (Zeile 361).
+
+*Abweichung des Nachbaus*: Wer weggeht, kann den Rest dem Feldherrn überlassen.
+Ohne diesen Ausweg stünde die andere Seite still, bis die Frist abläuft — in
+einer Runde ohne Frist für immer. Am Gerät von 1984 stellte sich die Frage
+nicht, dort saßen beide davor.
+
 *Abweichung des Nachbaus*: Das Original hat keinen Feldherrn — dort stellt jeder
 selbst auf, und der Cursor wartet in Spalte 13 beziehungsweise 26. Bei uns kann
 eine Frist verstreichen, und wer nichts tut, bekam bisher alles in genau diese

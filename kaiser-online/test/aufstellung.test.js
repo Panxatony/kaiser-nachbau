@@ -4,6 +4,21 @@ import { Spiel, PHASEN, HALTUNG } from '../server/game.js';
 import * as R from '../server/rules.js';
 import * as B from '../server/battle.js';
 
+/**
+ * Setzt eine Einheit in die erste Zeile, in der in dieser Spalte Platz ist.
+ * Das Schlachtfeld traegt Staedte, Maerkte und Muehlen; eine feste Zeile waere
+ * darum eine Wette.
+ */
+function setze(spiel, id, spalte) {
+  const k = spiel.kriege[0];
+  for (let zeile = 1; zeile <= 74; zeile++) {
+    if (!spiel.platzFrei(k, zeile, spalte)) continue;
+    const e = spiel.aktion(id, 'aufstellungSetzen', { zeile, spalte });
+    if (!e.fehler) return { zeile, spalte };
+  }
+  throw new Error('keine freie Zeile in Spalte ' + spalte);
+}
+
 function kriegslage(seed = 808) {
   const spiel = new Spiel({ id: 'a', seed, planungsSekunden: 0, diplomatieSekunden: 0 });
   for (let i = 0; i < 3; i++) spiel.beitreten({ id: 'p' + i, name: 'F' + i, weiblich: false, region: i });
@@ -44,47 +59,101 @@ test('Nur die Kriegsparteien sehen das Gelände', () => {
   assert.equal(sichtDritter.einheiten, null);
 });
 
-test('Aufstellung wird geprueft und uebernommen', () => {
+test('Gesetzt wird abwechselnd, und der Ueberschuss zuerst', () => {
   const spiel = kriegslage();
   const k = spiel.kriege[0];
-  const e = spiel.aktion('p0', 'aufstellung', {
-    aufstellung: [
-      { gattung: 'kavallerie', zeile: 10 },
-      { gattung: 'kavallerie', zeile: 10 },   // doppelte Zeile, wird verworfen
-      { gattung: 'infanterie', zeile: 20 },
-      { gattung: 'infanterie', zeile: 999 },  // ausserhalb, wird verworfen
-      { gattung: 'drache', zeile: 30 }        // gibt es nicht
-    ]
-  });
-  assert.ok(!e.fehler, e.fehler);
-  assert.equal(e.gesetzt, 2, 'Zwei gueltige Einheiten');
-  assert.deepEqual(k.aufstellungA, [{ gattung: 'kavallerie', zeile: 10 }, { gattung: 'infanterie', zeile: 20 }]);
+  // Beide Seiten sind gleich stark, also beginnt der Angreifer (Zeile 295).
+  assert.equal(k.einheitenA.length, k.einheitenV.length);
+  assert.equal(k.amZug, 'angreifer');
+
+  assert.match(spiel.aktion('p1', 'aufstellungSetzen', { zeile: 10, spalte: 24 }).fehler,
+    /Gegner ist am Zug/, 'der Verteidiger muss warten');
+
+  assert.ok(!spiel.aktion('p0', 'aufstellungSetzen', { zeile: 10, spalte: 16 }).fehler);
+  assert.equal(k.amZug, 'verteidiger', 'jetzt der andere');
+  assert.ok(!spiel.aktion('p1', 'aufstellungSetzen', { zeile: 10, spalte: 24 }).fehler);
+  assert.equal(k.amZug, 'angreifer', 'und wieder zurueck');
+
+  assert.deepEqual(k.aufstellungA, [{ gattung: 'kavallerie', zeile: 10, spalte: 16 }]);
+  assert.deepEqual(k.aufstellungV, [{ gattung: 'kavallerie', zeile: 10, spalte: 24 }]);
 });
 
-test('Mehr Einheiten als vorhanden werden abgewiesen', () => {
+test('Die staerkere Seite setzt ihren Ueberschuss zuerst', () => {
   const spiel = kriegslage();
-  const zuviel = Array.from({ length: 30 }, (_, i) => ({ gattung: 'kavallerie', zeile: i }));
-  const e = spiel.aktion('p0', 'aufstellung', { aufstellung: zuviel });
-  const kav = spiel.spielerVon('p0').kavallerie;
-  assert.equal(e.gesetzt, kav, `Nur die ${kav} vorhandenen Schwadronen werden gesetzt`);
+  const k = spiel.kriege[0];
+  // Dem Verteidiger zwei Einheiten mehr geben und den Krieg neu aufbauen
+  k.einheitenV = [...k.einheitenV, 'infanterie', 'infanterie'];
+  k.amZug = spiel.amZug(k);
+  assert.equal(k.amZug, 'verteidiger', 'wer mehr hat, faengt an');
+  spiel.aktion('p1', 'aufstellungSetzen', { zeile: 1, spalte: 24 });
+  assert.equal(k.amZug, 'verteidiger', 'und setzt weiter, bis es gleich steht');
+  spiel.aktion('p1', 'aufstellungSetzen', { zeile: 3, spalte: 24 });
+  assert.equal(k.amZug, 'angreifer', 'erst dann kommt der andere');
+});
+
+test('Die Gattung kommt in fester Reihenfolge', () => {
+  const spiel = kriegslage();
+  const k = spiel.kriege[0];
+  const gattungen = [];
+  for (let n = 0; n < 5; n++) {
+    setze(spiel, 'p0', 16);
+    gattungen.push(k.aufstellungA[k.aufstellungA.length - 1].gattung);
+    setze(spiel, 'p1', 24);
+  }
+  assert.deepEqual(gattungen.slice(0, 4), ['kavallerie', 'kavallerie', 'kavallerie', 'kavallerie'],
+    'erst die Kavallerie, davon gibt es vier');
+  assert.equal(gattungen[4], 'artillerie', 'dann die Artillerie');
+});
+
+test('Auf eine besetzte Stelle laesst sich nichts setzen', () => {
+  const spiel = kriegslage();
+  const k = spiel.kriege[0];
+  spiel.aktion('p0', 'aufstellungSetzen', { zeile: 10, spalte: 16 });
+  spiel.aktion('p1', 'aufstellungSetzen', { zeile: 10, spalte: 24 });
+  const e = spiel.aktion('p0', 'aufstellungSetzen', { zeile: 10, spalte: 17 });
+  assert.match(e.fehler, /kein Platz/, 'eine Einheit ist zwei Zeichen breit');
+  assert.equal(k.aufstellungA.length, 1);
+  assert.equal(k.amZug, 'angreifer', 'wer danebentrifft, bleibt am Zug');
+});
+
+test('Eine Spalte ausserhalb des eigenen Bereichs wird eingepasst', () => {
+  const spiel = kriegslage();
+  const k = spiel.kriege[0];
+  for (let zeile = 1; zeile <= 74; zeile++) {
+    if (!spiel.platzFrei(k, zeile, B.AUFSTELLUNG.angreifer.bis)) continue;
+    assert.ok(!spiel.aktion('p0', 'aufstellungSetzen', { zeile, spalte: 30 }).fehler);
+    break;
+  }
+  const e = k.aufstellungA[0];
+  assert.equal(e.spalte, B.AUFSTELLUNG.angreifer.bis, 'bis an die Grenze, nicht darueber');
+});
+
+test('Wer abgibt, laesst den anderen weitermachen', () => {
+  const spiel = kriegslage();
+  const k = spiel.kriege[0];
+  assert.ok(!spiel.aktion('p0', 'aufstellungAbgeben', {}).fehler);
+  assert.equal(k.amZug, 'verteidiger', 'der andere setzt allein zu Ende');
+  spiel.aktion('p1', 'aufstellungSetzen', { zeile: 4, spalte: 24 });
+  assert.equal(k.amZug, 'verteidiger', 'und bleibt dran');
+  assert.equal(k.aufstellungA.length, 0, 'fuer den Abgebenden setzt der Feldherr');
 });
 
 test('Ein Dritter darf nicht aufstellen', () => {
   const spiel = kriegslage();
-  assert.match(spiel.aktion('p2', 'aufstellung', { aufstellung: [] }).fehler, /keinem Krieg beteiligt/);
+  assert.match(spiel.aktion('p2', 'aufstellungSetzen', { zeile: 5, spalte: 16 }).fehler,
+    /keinem Krieg beteiligt/);
 });
 
 test('Die gewaehlte Aufstellung landet auf dem Schlachtfeld', () => {
   const spiel = kriegslage();
-  spiel.aktion('p0', 'aufstellung', { aufstellung: [{ gattung: 'kavallerie', zeile: 5 }] });
-  spiel.aktion('p1', 'aufstellung', { aufstellung: [{ gattung: 'infanterie', zeile: 5 }] });
+  spiel.aktion('p0', 'aufstellungSetzen', { zeile: 5, spalte: 16 });
+  spiel.aktion('p1', 'aufstellungSetzen', { zeile: 5, spalte: 24 });
   ['p0', 'p1', 'p2'].forEach(id => spiel.aktion(id, 'bereit'));
   const k = spiel.letzterBericht.kriege[0];
   assert.ok(k.startbild, 'Das Ausgangsbild wird mitgeliefert');
-  // In Zeile 5 muessen zu Beginn beide Einheiten stehen
   const zeile = k.startbild.slice(5 * B.SPALTEN, 6 * B.SPALTEN);
-  assert.equal(zeile[B.SPALTE_ANGREIFER], 227, 'Kavallerie des Angreifers in Zeile 5');
-  assert.equal(zeile[B.SPALTE_VERTEIDIGER], 103, 'Infanterie des Verteidigers in Zeile 5');
+  assert.equal(zeile[16], 227, 'Kavallerie des Angreifers in Zeile 5, Spalte 16');
+  assert.equal(zeile[24], 109, 'Kavallerie des Verteidigers in Zeile 5, Spalte 24');
 });
 
 test('Die Aufzeichnung ergibt genau den Endzustand', () => {
@@ -257,47 +326,4 @@ test('Die Aufstellung des Feldherrn schlaegt die Startspalte', () => {
   };
   assert.ok(mittel(true) > 0, 'Der Feldherr gewinnt als Angreifer gegen die Startspalte');
   assert.ok(mittel(false) < 0, 'Der Feldherr haelt als Verteidiger die Startspalte auf');
-});
-
-// ------------------------------------------- was der Server annimmt und behaelt
-
-test('Die gewaehlte Spalte ueberlebt den Server', () => {
-  const spiel = kriegslage();
-  spiel.aktion('p0', 'aufstellung', { aufstellung: [
-    { gattung: 'kavallerie', zeile: 10, spalte: 17 },
-    { gattung: 'kavallerie', zeile: 10, spalte: 14 },   // dieselbe Zeile, daneben
-    { gattung: 'artillerie', zeile: 20, spalte: 3 }
-  ] });
-  const k = spiel.kriege[0];
-  assert.deepEqual(k.aufstellungA, [
-    { gattung: 'kavallerie', zeile: 10, spalte: 17 },
-    { gattung: 'kavallerie', zeile: 10, spalte: 14 },
-    { gattung: 'artillerie', zeile: 20, spalte: 3 }
-  ], 'Zeile und Spalte kommen unveraendert an');
-});
-
-test('Zwei Einheiten duerfen sich nicht ueberlappen', () => {
-  const spiel = kriegslage();
-  spiel.aktion('p0', 'aufstellung', { aufstellung: [
-    { gattung: 'kavallerie', zeile: 10, spalte: 12 },
-    { gattung: 'kavallerie', zeile: 10, spalte: 13 }    // eine Spalte daneben
-  ] });
-  assert.equal(spiel.kriege[0].aufstellungA.length, 1, 'die zweite wird abgewiesen');
-});
-
-test('Eine Spalte ausserhalb des eigenen Bereichs wird eingepasst', () => {
-  const spiel = kriegslage();
-  spiel.aktion('p0', 'aufstellung', { aufstellung: [
-    { gattung: 'kavallerie', zeile: 5, spalte: 30 }     // jenseits der Grenze
-  ] });
-  const e = spiel.kriege[0].aufstellungA[0];
-  assert.ok(e.spalte <= B.AUFSTELLUNG.angreifer.bis, `eingepasst auf ${e.spalte}`);
-});
-
-test('Die Sicht des Gegners zeigt die fremde Aufstellung', () => {
-  const spiel = kriegslage();
-  spiel.aktion('p0', 'aufstellung', { aufstellung: [{ gattung: 'kavallerie', zeile: 7, spalte: 16 }] });
-  const sichtV = spiel.sichtFuer('p1').kriege[0];
-  assert.deepEqual(sichtV.gegnerAufstellung, [{ gattung: 'kavallerie', zeile: 7, spalte: 16 }],
-    'der Verteidiger sieht, was der Angreifer gesetzt hat');
 });

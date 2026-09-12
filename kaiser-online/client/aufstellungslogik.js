@@ -43,26 +43,37 @@ export function naechsteGattung(z) {
   return null;
 }
 
-/** Baut den Aufstellungszustand aus der Kriegssicht des Servers. */
+/**
+ * Baut den Aufstellungszustand aus der Kriegssicht des Servers.
+ *
+ * Seit die beiden Seiten abwechselnd setzen, gibt es hier keinen eigenen
+ * Zwischenstand mehr: jede gesetzte Einheit geht sofort an den Server, und was
+ * zurueckkommt, ist die Wahrheit. Das macht auch das Zusehen einfach -- die
+ * Truppen des Gegners stehen im selben Bild, so wie im Original.
+ */
 export function zustandAus(krieg) {
+  const gesetzt = (krieg.aufstellung || []).map(e => ({ spalte: krieg.spalte, ...e }));
+  const vorrat = [...(krieg.einheiten || [])];
+  for (const e of gesetzt) {
+    const i = vorrat.indexOf(e.gattung);
+    if (i >= 0) vorrat.splice(i, 1);
+  }
   const z = {
     kriegId: krieg.id,
     istAngreifer: krieg.istAngreifer,
     spalte: krieg.spalte,
     grenzspalte: krieg.grenzspalte ? Array.from(krieg.grenzspalte) : null,
     grund: Uint8Array.from(krieg.feld),
-    vorrat: [...krieg.einheiten],
-    gesetzt: (krieg.aufstellung || []).map(e => ({ spalte: krieg.spalte, ...e })),
+    vorrat,
+    gesetzt,
     gewaehlt: null,
+    amZug: krieg.amZug || null,            // 'ich', 'gegner' oder null
+    abgegeben: !!krieg.abgegeben,
     // Der Gegner stellt auf demselben Feld auf und ist dabei zu sehen
     gegnerSpalte: krieg.gegnerSpalte ?? null,
     gegnerEinheiten: krieg.gegnerEinheiten || [],
     gegnerAufstellung: (krieg.gegnerAufstellung || []).map(e => ({ ...e }))
   };
-  for (const e of z.gesetzt) {
-    const i = z.vorrat.indexOf(e.gattung);
-    if (i >= 0) z.vorrat.splice(i, 1);
-  }
   z.gewaehlt = naechsteGattung(z);
   return z;
 }
@@ -113,81 +124,34 @@ export function feldFrei(z, zeile, spalte) {
   if (spalte < g.von || spalte > g.bis) return false;
   const i = zeile * SPALTEN + spalte;
   if (z.grund[i] !== 32 || z.grund[i + 1] !== 32) return false;
-  return !z.gesetzt.some(e => e.zeile === zeile &&
-    Math.abs((e.spalte ?? z.spalte) - spalte) < 2);
+  // Beide Seiten stehen auf demselben Feld; im Weg ist auch der Gegner.
+  const stoert = (liste, standard) => liste.some(e =>
+    e.zeile === zeile && Math.abs((e.spalte ?? standard) - spalte) < 2);
+  return !stoert(z.gesetzt, z.spalte)
+      && !stoert(z.gegnerAufstellung || [], z.gegnerSpalte);
 }
 
 /**
- * Behandelt einen Klick auf eine Zeile.
- * Liefert {geaendert, fehler}. Eine besetzte Zeile gibt die Einheit zurueck,
- * eine freie nimmt die gewaehlte Gattung auf.
+ * Prueft einen Klick, bevor er an den Server geht.
+ *
+ * Gesetzt wird nicht mehr hier: die Einheit geht als eigene Nachricht zum
+ * Server, weil die beiden Seiten abwechselnd dran sind und nur er weiss, wer.
+ * Diese Pruefung erspart den offensichtlich vergeblichen Weg und liefert
+ * gleich den Grund.
  */
 export function klick(z, zeile, spalte) {
   if (zeile < 0 || zeile >= ZEILEN) return { geaendert: false };
   const c = spalteEinpassen(z, spalte == null ? z.spalte : spalte);
-
-  // Auf eine besetzte Stelle geklickt: die Einheit kommt zurueck
-  const vorhanden = z.gesetzt.findIndex(e =>
-    e.zeile === zeile && Math.abs((e.spalte ?? z.spalte) - c) < 2);
-  if (vorhanden >= 0) {
-    z.vorrat.push(z.gesetzt[vorhanden].gattung);
-    z.gesetzt.splice(vorhanden, 1);
-    z.gewaehlt = naechsteGattung(z);
-    return { geaendert: true };
+  if (z.abgegeben) return { geaendert: false, fehler: 'Sie haben die Aufstellung abgegeben.' };
+  if (z.amZug !== 'ich') {
+    return { geaendert: false, fehler: z.amZug ? 'Der Gegner ist am Zug.' : 'Es steht schon alles.' };
   }
-
-  // Die Gattung ist nicht frei waehlbar, es kommt immer die naechste an die
-  // Reihe, wie im Original.
-  z.gewaehlt = naechsteGattung(z);
-  if (!z.gewaehlt) return { geaendert: false, fehler: 'Alle Einheiten stehen schon.' };
-  const i = z.vorrat.indexOf(z.gewaehlt);
-  if (!feldFrei(z, zeile, c)) {
-    return { geaendert: false, fehler: 'Dort ist kein Platz für eine Einheit.' };
-  }
-  z.vorrat.splice(i, 1);
-  z.gesetzt.push({ gattung: z.gewaehlt, zeile, spalte: c });
-  z.gewaehlt = naechsteGattung(z);
-  return { geaendert: true };
+  if (!naechsteGattung(z)) return { geaendert: false, fehler: 'Alle Einheiten stehen schon.' };
+  if (!feldFrei(z, zeile, c)) return { geaendert: false, fehler: 'Dort ist kein Platz für eine Einheit.' };
+  return { setzen: { zeile, spalte: c } };
 }
 
-/**
- * Verteilt die uebrigen Einheiten gleichmaessig auf freie Zeilen, und zwar
- * grenznah wie der Feldherr. Frueher landete alles in der Startspalte des
- * Cursors; das war die schlechteste Stellung des ganzen Feldes.
- */
-export function restVerteilen(z) {
-  if (!z.vorrat.length) return { geaendert: false };
-  const frei = [];
-  for (let r = AUFSTELLUNG.ersteZeile; r <= AUFSTELLUNG.letzteZeile; r++) {
-    if (feldFrei(z, r, feldherrSpalte(z, r))) frei.push(r);
-  }
-  if (!frei.length) return { geaendert: false, fehler: 'Keine freie Zeile mehr.' };
 
-  const rest = [...z.vorrat];
-  z.vorrat = [];
-  const schritt = frei.length / (rest.length + 1);
-  for (let i = 0; i < rest.length; i++) {
-    let k = Math.min(frei.length - 1, Math.round((i + 1) * schritt));
-    let gefunden = -1;
-    for (let versuch = 0; versuch < frei.length; versuch++) {
-      const kandidat = frei[(k + versuch) % frei.length];
-      if (feldFrei(z, kandidat, feldherrSpalte(z, kandidat))) { gefunden = kandidat; break; }
-    }
-    if (gefunden < 0) { z.vorrat.push(rest[i]); continue; }
-    z.gesetzt.push({ gattung: rest[i], zeile: gefunden, spalte: feldherrSpalte(z, gefunden) });
-  }
-  z.gesetzt.sort((a, b) => a.zeile - b.zeile);
-  z.gewaehlt = naechsteGattung(z);
-  return { geaendert: true };
-}
-
-/** Nimmt alle Einheiten zurueck. */
-export function alleZurueck(z) {
-  for (const e of z.gesetzt) z.vorrat.push(e.gattung);
-  z.gesetzt = [];
-  z.gewaehlt = naechsteGattung(z);
-  return { geaendert: true };
-}
 
 /**
  * Baut das anzuzeigende Feld: Gelaende, eigene Einheiten und die des Gegners.

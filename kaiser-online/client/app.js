@@ -1444,18 +1444,11 @@ async function aufstellungZeichnen() {
   karte.classList.toggle('verstecken', !krieg);
   if (!krieg) { aufstellung = null; return; }
 
-  if (!aufstellung || aufstellung.kriegId !== krieg.id) {
-    aufstellung = A.zustandAus(krieg);
-  } else {
-    // Der Gegner stellt auf demselben Feld auf, und man sieht ihm dabei zu --
-    // so steht es im Handbuch, Seite 14 und 15. Seine Truppen muessen darum
-    // mit jedem neuen Stand herueberkommen. Die eigene, halb fertige
-    // Aufstellung bleibt davon unberuehrt; sie lebt nur hier im Browser,
-    // bis sie abgeschickt wird.
-    aufstellung.gegnerAufstellung = (krieg.gegnerAufstellung || []).map(e => ({ ...e }));
-    aufstellung.gegnerEinheiten = krieg.gegnerEinheiten || [];
-    aufstellung.gegnerSpalte = krieg.gegnerSpalte ?? aufstellung.gegnerSpalte;
-  }
+  // Der Stand kommt mit jeder Nachricht frisch vom Server: seit beide Seiten
+  // abwechselnd setzen, gibt es hier nichts mehr zwischenzuspeichern. Damit
+  // erscheinen auch die Truppen des Gegners, sobald er eine setzt -- so wie im
+  // Original, wo beide vor demselben Bildschirm sitzen (Handbuch, Seite 14).
+  aufstellung = A.zustandAus(krieg);
   const z = aufstellung;
   const offen = A.offeneEinheiten(z);
   const gesperrt = !!(zustand.runde && zustand.runde.diplomatieFertig);
@@ -1475,26 +1468,32 @@ async function aufstellungZeichnen() {
     <p class="klein">Verteilen Sie jetzt bitte die Truppen! Sie sind ${z.istAngreifer
       ? 'der <b>Angreifer</b> und stellen in der linken Spalte auf'
       : 'der <b>Verteidiger</b> und stellen in der rechten Spalte auf'}.
-      Klicken Sie auf die gewünschte Stelle im gelb umrandeten Bereich. Ein zweiter Klick
-      auf eine besetzte Stelle nimmt die Einheit zurück. In eine Zeile passen mehrere
-      Einheiten nebeneinander. Die Gattung wählen Sie nicht selbst: es kommt immer die
-      nächste an die Reihe, zuerst die Kavallerie, dann Artillerie, Infanterie und zuletzt
-      die Miliz.</p>
+      Klicken Sie auf die gewünschte Stelle im gelb umrandeten Bereich. <b>Gesetzt ist
+      gesetzt</b> &mdash; zurücknehmen lässt sich eine Einheit nicht, so wie im Original.
+      In eine Zeile passen mehrere Einheiten nebeneinander. Die Gattung wählen Sie nicht
+      selbst: es kommt immer die nächste an die Reihe, zuerst die Kavallerie, dann
+      Artillerie, Infanterie und zuletzt die Miliz.</p>
     ${truppentafel(z)}
-    <p class="meldung${z.gewaehlt ? '' : ' gut'}">${z.gewaehlt
-      ? `Als nächstes setzen Sie: <b>${A.GATTUNGSNAMEN[z.gewaehlt]}</b>, noch ${offen[z.gewaehlt]} übrig.`
-      : 'Alle Einheiten sind aufgestellt.'}</p>
+    ${z.abgegeben
+      ? '<p class="meldung">Sie haben abgegeben. Den Rest setzt Ihr Feldherr.</p>'
+      : z.amZug === 'ich'
+        ? `<p class="meldung gut"><b>Sie sind am Zug.</b> Als nächstes setzen Sie:
+            <b>${A.GATTUNGSNAMEN[z.gewaehlt] || '—'}</b>${z.gewaehlt
+              ? `, noch ${offen[z.gewaehlt]} übrig` : ''}.</p>`
+        : z.amZug === 'gegner'
+          ? '<p class="meldung warnung">Der Gegner setzt. Sie sind gleich wieder dran.</p>'
+          : '<p class="meldung gut">Alle Einheiten stehen.</p>'}
     <div class="hinweisleiste">
       <span>Aufgestellt: <b>${z.gesetzt.length}</b></span>
       <span>Übrig: <b>${z.vorrat.length}</b></span>
-      <button data-auto="1">Rest verteilen</button>
-      <button data-leeren="1">Alles zurücknehmen</button>
+      ${z.vorrat.length && !z.abgegeben
+        ? '<button data-abgeben="1">Rest dem Feldherrn überlassen</button>' : ''}
     </div>
-    <p class="klein">Nicht aufgestellte Einheiten verteilt der Feldherr am Ende selbst,
-       und zwar drei Spalten vor der feindlichen Grenze; „Rest verteilen“ macht dasselbe.
-       Von Hand kommen Sie noch etwas dichter heran.
-       Miliz verteidigt nur, sie greift nicht an. Der Gegner stellt auf demselben Feld auf
-       und sieht Ihre Truppen dabei, so wie Sie seine sehen.</p>
+    <p class="klein">Gesetzt wird abwechselnd, eine Einheit nach der anderen, und wer
+       mehr Einheiten hat, setzt seinen Überschuss zuerst &mdash; so macht es das Original
+       in Zeile 292 bis 295. Wer nicht warten mag, überlässt den Rest dem Feldherrn; der
+       stellt drei Spalten vor der feindlichen Grenze auf, von Hand kommen Sie noch etwas
+       dichter heran. Miliz verteidigt nur, sie greift nicht an.</p>
     <div class="handbuch"><b>Aus dem Handbuch</b><p>Beim Aufstellen der Truppen im Krieg
       sollte man jede Einheit möglichst nahe der feindlichen Grenze postieren, da es sonst
       passieren kann, daß die feindliche Armee das feindliche Gebiet nicht erreicht. Achten
@@ -1504,10 +1503,8 @@ async function aufstellungZeichnen() {
       <p class="quelle">Handbuch zu Kaiser, Ariolasoft 1984, Seite 16</p></div>`;
 
   const feld = $('aufstellungInhalt');
-  const auto = feld.querySelector('[data-auto]');
-  if (auto) auto.onclick = () => anwenden(A.restVerteilen(aufstellung));
-  const leeren = feld.querySelector('[data-leeren]');
-  if (leeren) leeren.onclick = () => anwenden(A.alleZurueck(aufstellung));
+  const abgeben = feld.querySelector('[data-abgeben]');
+  if (abgeben) abgeben.onclick = () => { Klang.klick(); aktion('aufstellungAbgeben', {}); };
 
   try { await zeichensatzBereit(); }
   catch { zeichensatzFehlt($('aufstellungsfeld')); return; }
@@ -1545,13 +1542,6 @@ function truppentafel(z) {
   </table></div>`;
 }
 
-function anwenden(e) {
-  if (e.fehler) fehlerZeigen(e.fehler);
-  if (!e.geaendert) return;
-  aktion('aufstellung', { aufstellung: aufstellung.gesetzt });
-  aufstellungZeichnen();
-}
-
 /** Zeichnet Gelände samt gesetzter Einheiten. */
 function feldMalen() {
   if (!aufstellung) return;
@@ -1574,7 +1564,11 @@ $('aufstellungsfeld').onclick = ev => {
   const r = $('aufstellungsfeld').getBoundingClientRect();
   const zeile = A.zeileAusKlick(ev.clientY, r.top, r.height, ZEILEN);
   const spalte = A.spalteAusKlick(ev.clientX, r.left, r.width, SPALTEN);
-  anwenden(A.klick(aufstellung, zeile, spalte));
+  const e = A.klick(aufstellung, zeile, spalte);
+  if (e.fehler) { fehlerZeigen(e.fehler); return; }
+  if (!e.setzen) return;
+  Klang.klick();
+  aktion('aufstellungSetzen', e.setzen);       // der Server sagt, ob es gilt
 };
 
 // ------------------------------------------------------------------ Bericht

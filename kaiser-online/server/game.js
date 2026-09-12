@@ -335,42 +335,60 @@ export class Spiel {
       z.haltungen[krieg.id] = h;
       return { ok: true };
     }
-    if (art === 'aufstellung') {
+    // Eine einzelne Einheit setzen. Im Original geht das nur, wenn man an der
+    // Reihe ist: Zeile 292 bis 295 laesst die beiden Seiten abwechselnd je
+    // eine Einheit setzen, und der Ueberschuss der staerkeren Seite kommt
+    // zuerst. Beide sitzen dabei vor demselben Bildschirm und sehen zu.
+    if (art === 'aufstellungSetzen') {
       const krieg = this.kriege.find(k => k.angreifer === s.id || k.verteidiger === s.id);
       if (!krieg) return { fehler: 'Sie sind an keinem Krieg beteiligt.' };
       const istAngreifer = krieg.angreifer === s.id;
-      const vorrat = [...(istAngreifer ? krieg.einheitenA : krieg.einheitenV)];
-      const geprueft = [];
-      // Belegt wird ein Platz, nicht eine Zeile: in eine Zeile passen mehrere
-      // Einheiten nebeneinander, sie duerfen sich nur nicht ueberlappen. Eine
-      // Einheit ist zwei Zeichen breit.
-      const belegt = new Map();                    // Zeile -> [Spalten]
-      for (const e of (daten.aufstellung || [])) {
-        const i = vorrat.indexOf(e.gattung);
-        if (i < 0) continue;                       // mehr Einheiten als vorhanden
-        const zeile = R.int(e.zeile);
-        if (!(zeile >= 0 && zeile < B.ZEILEN)) continue;
-        // Die Spalte ist das, was der Spieler tatsaechlich gewaehlt hat. Ohne
-        // sie landet die Einheit spaeter in der Startspalte des Cursors, und
-        // das ist die schlechteste Stellung des Feldes (siehe TEXTE.md und
-        // B.FELDHERR_ABSTAND).
-        const spalte = e.spalte == null
-          ? null
-          : B.spalteEinpassen(e.spalte, istAngreifer);
-        const reihe = belegt.get(zeile) || [];
-        if (spalte != null && reihe.some(c => Math.abs(c - spalte) < 2)) continue;
-        if (spalte == null && reihe.length) continue;   // ohne Spalte nur eine je Zeile
-        vorrat.splice(i, 1);
-        reihe.push(spalte == null ? -99 : spalte);
-        belegt.set(zeile, reihe);
-        geprueft.push(spalte == null ? { gattung: e.gattung, zeile }
-                                     : { gattung: e.gattung, zeile, spalte });
+      const meine = istAngreifer ? 'angreifer' : 'verteidiger';
+      if (krieg.amZug !== meine) {
+        return { fehler: krieg.amZug ? 'Der Gegner ist am Zug.' : 'Es steht schon alles.' };
       }
-      if (istAngreifer) krieg.aufstellungA = geprueft;
-      else krieg.aufstellungV = geprueft;
-      return { ok: true, gesetzt: geprueft.length, offen: vorrat.length };
+      const vorrat = istAngreifer ? krieg.einheitenA : krieg.einheitenV;
+      const gesetzt = istAngreifer ? krieg.aufstellungA : krieg.aufstellungV;
+      const offen = vorrat.slice(gesetzt.length);
+      if (!offen.length) return { fehler: 'Sie haben nichts mehr zu setzen.' };
+
+      const zeile = R.int(daten.zeile);
+      const spalte = B.spalteEinpassen(daten.spalte, istAngreifer);
+      if (!this.platzFrei(krieg, zeile, spalte)) {
+        return { fehler: 'Dort ist kein Platz für eine Einheit.' };
+      }
+      // Die Gattung waehlt man nicht: es kommt immer die naechste an die
+      // Reihe, Kavallerie, Artillerie, Infanterie, Miliz (BASIC-Zeile 354).
+      gesetzt.push({ gattung: offen[0], zeile, spalte });
+      krieg.amZug = this.amZug(krieg);
+      return { ok: true, gesetzt: gesetzt.length, offen: offen.length - 1 };
     }
-    if (art === 'bereit') { z.diplomatieFertig = true; this.phasePruefen(); return { ok: true }; }
+
+    // Den Rest dem Feldherrn ueberlassen. Das Original kennt das nicht, dort
+    // sitzen beide vor dem Geraet und setzen zu Ende. Hier kann jemand
+    // weggehen, und ohne diesen Ausweg stuende die andere Seite still, bis die
+    // Frist ablaeuft -- in einer Runde ohne Frist fuer immer.
+    if (art === 'aufstellungAbgeben') {
+      const krieg = this.kriege.find(k => k.angreifer === s.id || k.verteidiger === s.id);
+      if (!krieg) return { fehler: 'Sie sind an keinem Krieg beteiligt.' };
+      if (krieg.angreifer === s.id) krieg.fertigA = true; else krieg.fertigV = true;
+      krieg.amZug = this.amZug(krieg);
+      return { ok: true };
+    }
+
+    if (art === 'bereit') {
+      z.diplomatieFertig = true;
+      // Wer bestaetigt, setzt nichts mehr. Damit der Gegner nicht auf einen
+      // Zug wartet, der nicht mehr kommt, gilt das zugleich als Abgeben.
+      for (const k of this.kriege) {
+        if (k.angreifer === s.id) k.fertigA = true;
+        else if (k.verteidiger === s.id) k.fertigV = true;
+        else continue;
+        k.amZug = this.amZug(k);
+      }
+      this.phasePruefen();
+      return { ok: true };
+    }
     return { fehler: 'Unbekannte Aktion: ' + art };
   }
 
@@ -527,6 +545,43 @@ export class Spiel {
     return menge;
   }
 
+  /**
+   * Wer setzt die naechste Einheit?
+   *
+   * Zeile 292 bis 295 des Originals: erst setzt die Seite mit den mehr
+   * Einheiten ihren Ueberschuss, dann geht es Einheit um Einheit im Wechsel
+   * weiter, beginnend beim Angreifer.
+   *
+   *   292 FORi=0TO1
+   *   293 IFz(i,0)>z(1-i,0)THENGOSUB353:GOTO293
+   *   294 NEXT
+   *   295 FORi=0TO1:GOSUB353:NEXT:IFz(1,0)>0THEN295
+   *
+   * In eine Regel gefasst: es setzt, wer mehr uebrig hat; bei Gleichstand der
+   * Angreifer. Sind beide fertig, ist niemand mehr am Zug.
+   */
+  amZug(k) {
+    const offen = (liste, gesetzt, fertig) => fertig ? 0 : liste.length - gesetzt.length;
+    const a = offen(k.einheitenA, k.aufstellungA, k.fertigA);
+    const v = offen(k.einheitenV, k.aufstellungV, k.fertigV);
+    if (a <= 0 && v <= 0) return null;
+    if (a <= 0) return 'verteidiger';
+    if (v <= 0) return 'angreifer';
+    return a >= v ? 'angreifer' : 'verteidiger';
+  }
+
+  /** Ist die Stelle frei -- Gelaende wie schon gesetzte Einheiten beider Seiten? */
+  platzFrei(k, zeile, spalte) {
+    if (!(zeile >= B.AUFSTELLUNG.ersteZeile && zeile <= B.AUFSTELLUNG.letzteZeile)) return false;
+    if (spalte < 0 || spalte + 1 >= B.SPALTEN) return false;
+    const i = zeile * B.SPALTEN + spalte;
+    if (k.feld[i] !== B.LEER || k.feld[i + 1] !== B.LEER) return false;
+    for (const e of [...k.aufstellungA, ...k.aufstellungV]) {
+      if (e.zeile === zeile && e.spalte != null && Math.abs(e.spalte - spalte) < 2) return false;
+    }
+    return true;
+  }
+
   /** Erzwingt den Phasenwechsel bei Fristablauf (Auto-Zug fuer Saeumige). */
   fristAbgelaufen() {
     if (this.phase === PHASEN.PLANUNG) {
@@ -585,6 +640,9 @@ export class Spiel {
       k.grenzspalte = Array.from(feld.grenzspalte);
       k.einheitenA = B.einheitenListe(a);
       k.einheitenV = B.einheitenListe(v);
+      k.fertigA = false;              // hat die Seite den Rest dem Feldherrn ueberlassen?
+      k.fertigV = false;
+      k.amZug = this.amZug(k);
     }
     // Beteiligte und Aussetzende muessen nichts entscheiden
     for (const s of this.spieler) {
@@ -886,6 +944,11 @@ export class Spiel {
           grenzspalte: beteiligt ? (k.grenzspalte || null) : null,
           einheiten: beteiligt ? (istAngreifer ? k.einheitenA : k.einheitenV) : null,
           aufstellung: beteiligt ? (istAngreifer ? k.aufstellungA : k.aufstellungV) : null,
+          // Wer die naechste Einheit setzt, und was man selbst noch im Vorrat
+          // hat. Beides braucht der Browser, um zu zeigen, wer dran ist.
+          amZug: beteiligt ? (k.amZug === (istAngreifer ? 'angreifer' : 'verteidiger') ? 'ich'
+                            : k.amZug ? 'gegner' : null) : null,
+          abgegeben: beteiligt ? !!(istAngreifer ? k.fertigA : k.fertigV) : null,
           // Das Original stellt beide Parteien auf demselben Bildschirm auf,
           // abwechselnd und fuer alle sichtbar (Zeile 292 bis 295). Es gibt
           // dort keine verdeckte Aufstellung, also gibt es sie hier auch nicht.

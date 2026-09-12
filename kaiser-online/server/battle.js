@@ -9,7 +9,7 @@ export const ZEILEN = 76;
 export const SPALTEN = 40;
 export const SPALTE_ANGREIFER = 13;    // Zeile 358 des Originals
 export const SPALTE_VERTEIDIGER = 26;  // Zeile 372 des Originals
-const LEER = 32;
+export const LEER = 32;
 const VERSATZ = 128;   // Zeichen des Angreifers liegen 128 hoeher als die des Verteidigers
 
 // Zeichencodes des Verteidigers (Angreifer = +128), aus dem Original
@@ -29,7 +29,7 @@ export const T = {
   grenze:     [240, 247, 248, 251, 128]
 };
 
-const GATTUNGEN = ['kavallerie', 'artillerie', 'infanterie', 'miliz'];
+export const GATTUNGEN = ['kavallerie', 'artillerie', 'infanterie', 'miliz'];
 // Verteidigungswert je Gattung, Zeile 172-174 und 219-221
 const WEHRWERT = { kavallerie: 5, miliz: 1.5, infanterie: 1, artillerie: 0.6 };
 // Angriffsstaerke und Reichweite, Zeile 158 und 203
