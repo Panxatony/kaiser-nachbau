@@ -35,11 +35,16 @@ export function sichern(spiel) {
       // damit die Aufstellung nach einem Neustart weitergeht
       kriege: spiel.kriege || [],
       zustand: Object.fromEntries(Object.entries(spiel.zustand).map(([k, v]) => [k, rundeSichern(v)])),
-      // Der letzte Bericht wird ohne die grossen Felddaten gesichert
+      // Vom letzten Bericht bleibt das Schlussbild der Schlacht erhalten --
+      // rund 3.000 Zahlen, das traegt die Datei. Die Aufzeichnung der ganzen
+      // Schlacht waere um ein Vielfaches groesser und faellt weg; nach einem
+      // Neustart laesst sich die Schlacht also nicht mehr abspielen, aber man
+      // sieht, wie sie ausgegangen ist. Vorher war auch das fort, und das Feld
+      // blieb nach jedem Neustart schwarz.
       letzterBericht: spiel.letzterBericht ? {
         ...spiel.letzterBericht,
         kriege: spiel.letzterBericht.kriege.map(
-          ({ feld, ereignisse, startbild, aufzeichnung, ...rest }) => rest)
+          ({ ereignisse, startbild, aufzeichnung, ...rest }) => rest)
       } : null
     };
     const ziel = path.join(ORDNER, spiel.id.replace(/[^a-zA-Z0-9_-]/g, '_') + '.json');

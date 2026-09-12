@@ -43,3 +43,35 @@ test('Spielstand ueberlebt Sichern und Laden', () => {
 test('Unbekannter Spielstand liefert null', () => {
   assert.equal(laden('gibtesnicht'), null);
 });
+
+test('Das Schlussbild einer Schlacht ueberlebt den Neustart', () => {
+  // Vorher fielen feld, startbild und aufzeichnung beim Sichern weg. Nach
+  // einem Neustart des Servers war das Schlachtfeld darum schwarz.
+  const spiel = new Spiel({ id: 'schlachtbild', seed: 4242, planungsSekunden: 0, diplomatieSekunden: 0 });
+  spiel.beitreten({ id: 'p0', name: 'ANNA', weiblich: true, region: 0 });
+  spiel.beitreten({ id: 'p1', name: 'BERND', weiblich: false, region: 1 });
+  spiel.starten();
+  for (const p of spiel.spieler) {
+    p.titel = 5; p.kavallerie = 4; p.artillerie = 3; p.infanterie = 6;
+    p.maerkte = 10; p.muehlen = 4;
+    R.armeeAktualisieren(p);
+  }
+  for (const id of ['p0', 'p1']) {
+    const s = spiel.spielerVon(id);
+    spiel.aktion(id, 'kornVerteilen', { menge: R.int(s.korn / 2) });
+    spiel.aktion(id, 'steuernEinziehen');
+    if (id === 'p0') spiel.aktion(id, 'kriegErklaeren', { ziel: 'p1' });
+    spiel.aktion(id, 'zugBeenden');
+  }
+  ['p0', 'p1'].forEach(id => spiel.aktion(id, 'bereit'));
+  const vorher = spiel.letzterBericht.kriege[0];
+  assert.ok(vorher.feld, 'frisch gerechnet ist das Feld da');
+
+  sichern(spiel);
+  const geladen = laden('schlachtbild');
+  const k = geladen.letzterBericht.kriege[0];
+  assert.ok(Array.isArray(k.feld) && k.feld.length === vorher.feld.length,
+    'das Schlussbild ist noch da');
+  assert.deepEqual(k.feld, vorher.feld, 'und zwar unveraendert');
+  assert.ok(!k.aufzeichnung, 'die Aufzeichnung der Schlacht faellt weg, die waere zu gross');
+});

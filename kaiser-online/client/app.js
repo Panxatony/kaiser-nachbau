@@ -1699,6 +1699,19 @@ function beschreibeVerluste(v) {
  * Schreibt einen Hinweis auf die Fläche, wenn der Zeichensatz fehlt. Das ist
  * nach einem frischen Klon der Fall: das Originalmaterial liegt nicht im Repo.
  */
+/** Schreibt ein paar Zeilen mitten auf eine schwarze Flaeche. */
+function bildHinweis(flaeche, zeilen) {
+  if (!flaeche) return;
+  const ctx = flaeche.getContext('2d');
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, flaeche.width, flaeche.height);
+  ctx.fillStyle = FARBEN[7];
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  const oben = Math.max(40, flaeche.height / 2 - zeilen.length * 8);
+  zeilen.forEach((z, i) => ctx.fillText(z, flaeche.width / 2, oben + i * 16));
+}
+
 function zeichensatzFehlt(flaeche) {
   if (!flaeche) return;
   const ctx = flaeche.getContext('2d');
@@ -1728,7 +1741,19 @@ async function schlachtfeldZeichnen() {
   if (!b || !b.kriege.length) return;
   const k = b.kriege[schlachtIndex];
   $('schlachtName').textContent = `${k.angreifer} gegen ${k.verteidiger} (${schlachtIndex + 1}/${b.kriege.length})`;
-  if (!k.feld) return;
+  if (!k.feld) {
+    // Aeltere Spielstaende haben das Schlussbild nicht mitgesichert. Ein
+    // schwarzer Kasten sieht aus wie ein Fehler; sagen wir lieber, was los ist.
+    bildHinweis($('schlachtfeld'), [
+      'Das Bild dieser Schlacht',
+      'ist nicht mehr vorhanden.',
+      '',
+      'Der Ausgang steht im Bericht darüber.'
+    ]);
+    $('abspielLeiste').classList.add('verstecken');
+    $('zeitleiste').classList.add('verstecken');
+    return;
+  }
   try { await zeichensatzBereit(); }
   catch { zeichensatzFehlt($('schlachtfeld')); return; }
 
