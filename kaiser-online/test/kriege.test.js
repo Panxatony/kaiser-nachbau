@@ -111,3 +111,22 @@ test('Ein starker Angreifer gewinnt Land, ein schwacher verliert es', () => {
   }
   assert.ok(stark >= 10, `Der uebermaechtige Angreifer sollte fast immer gewinnen, gewann aber nur ${stark} von 12`);
 });
+
+test('Der Jahresbericht nennt auch, was ausser Soldaten zu Bruch ging', () => {
+  // Zeile 316 bis 329 des Originals: Maerkte, Muehlen, Palast, Kathedrale,
+  // Einwohner und Staatskasse, je Seite.
+  const spiel = aufgestellt(2, 4242);
+  zug(spiel, 'p0', (s, id) => s.aktion(id, 'kriegErklaeren', { ziel: 'p1' }));
+  zug(spiel, 'p1');
+  bereit(spiel);
+  const k = spiel.letzterBericht.kriege[0];
+  for (const feld of ['gebaeude', 'einwohner', 'kasse']) {
+    assert.ok(Array.isArray(k[feld]) && k[feld].length === 2, `${feld} steht fuer beide Seiten drin`);
+  }
+  for (const seite of k.gebaeude) {
+    for (const bau of ['maerkte', 'muehlen', 'palast', 'kathedrale']) {
+      assert.equal(typeof seite[bau], 'number', `${bau} ist eine Zahl`);
+    }
+  }
+  assert.equal(typeof k.praemie, 'number', 'die Siegpraemie steht dabei');
+});

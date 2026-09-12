@@ -1639,8 +1639,10 @@ function berichtZeichnen() {
       ${land ? `${esc(gewinner)} gewinnt ${zahl(land)} Hektar.` : 'Keine Landverschiebung.'}<br>
       Verluste ${esc(k.angreifer)}: ${beschreibeVerluste(k.verluste[0])}<br>
       Verluste ${esc(k.verteidiger)}: ${beschreibeVerluste(k.verluste[1])}
+      ${k.praemie ? `<br>Die überlebenden Soldaten bekommen eine großzügige Prämie: ${zahl(k.praemie)} Taler.` : ''}
       ${k.entschaedigungen.length ? '<br>' + k.entschaedigungen.map(e => `${esc(e.von)} zahlt ${zahl(e.taler)} Taler an ${esc(e.an)}.`).join('<br>') : ''}
-      </div>`;
+      </div>
+      ${weitereVerluste(k)}`;
   }
   for (const s of b.spieler) {
     for (const m of s.meldungen) {
@@ -1653,6 +1655,35 @@ function berichtZeichnen() {
     schlachtIndex = Math.min(schlachtIndex, b.kriege.length - 1);
     schlachtfeldZeichnen();
   }
+}
+
+/**
+ * Was ausser Soldaten zu Bruch ging, Zeile 316 bis 329 des Originals:
+ *
+ *   316 "Ausser an Soldaten entstanden folgende Verluste:"
+ *   317 "Angreifer / Verteidiger"  "Maerkte :"
+ *   318 "Muehlen :"   321 "Palast :"   324 "Kathedrale :"
+ *   328 "Einwohner :"  329 "Staatskasse:"
+ *
+ * Die Zahlen schickt der Server schon lange mit; angezeigt wurden sie nicht.
+ */
+function weitereVerluste(k) {
+  const g = k.gebaeude || [], e = k.einwohner || [], ka = k.kasse || [];
+  const zeilen = [
+    ['Märkte', g[0]?.maerkte, g[1]?.maerkte],
+    ['Mühlen', g[0]?.muehlen, g[1]?.muehlen],
+    ['Palast', g[0]?.palast, g[1]?.palast],
+    ['Kathedrale', g[0]?.kathedrale, g[1]?.kathedrale],
+    ['Einwohner', e[0], e[1]],
+    ['Staatskasse', ka[0], ka[1]]
+  ].filter(([, a, b]) => (a || 0) > 0 || (b || 0) > 0);
+  if (!zeilen.length) return '';
+  return `<div class="tabellenhuelle"><table>
+    <tr><th>Außer an Soldaten entstanden folgende Verluste</th>
+      <th class="zahl">${esc(k.angreifer)}</th><th class="zahl">${esc(k.verteidiger)}</th></tr>
+    ${zeilen.map(([name, a, b]) => `<tr><td>${name}</td>
+      <td class="zahl">${zahl(a || 0)}</td><td class="zahl">${zahl(b || 0)}</td></tr>`).join('')}
+  </table></div>`;
 }
 
 function beschreibeVerluste(v) {
