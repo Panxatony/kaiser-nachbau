@@ -458,10 +458,10 @@ export const vermoegenVon = s => s.kasse + bauwerte(s);
  * Rang -- die erste Befoerderung kostet weiterhin 9.999, jede weitere mehr:
  *
  *   Herr -> Baron          9.999
- *   Baron -> Landgraf     15.000
- *   Landgraf -> Markgraf  20.000
+ *   Baron -> Landgraf     20.000
+ *   Landgraf -> Markgraf  30.000
  *   ...
- *   Koenig -> Kaiser      45.000   (dazu 100.000 in bar, Zeile 743)
+ *   Koenig -> Kaiser      80.000   (dazu 100.000 in bar, Zeile 743)
  *
  * `titelSchwelle` ist der Abstand zwischen zwei Stufen. Steht er auf 0, bleibt
  * es beim festen Betrag des Originals.

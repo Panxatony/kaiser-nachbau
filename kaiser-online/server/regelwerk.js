@@ -148,18 +148,22 @@ export const REGELWERKE = {
      * Die Schwelle selbst steigt ausserdem mit dem Rang. Im Original ist sie
      * vom Herrn bis zum Koenig dieselbe, was sie oben bedeutungslos macht:
      * wer schon ein Fuerstentum aufgebaut hat, hat 9.999 Taler immer. Hier
-     * kostet die erste Befoerderung weiterhin 9.999, jede weitere 5.000 mehr
-     * -- 15.000, 20.000, bis zu 45.000 fuer den letzten Schritt.
+     * kostet die erste Befoerderung weiterhin 9.999, jede weitere 10.000 mehr
+     * -- 20.000, 30.000, bis zu 80.000 fuer den letzten Schritt.
      *
-     * Gemessen an 25 Laeufen zu 60 Jahren bremst diese Leiter allerdings so
-     * gut wie nie, sobald die Bauwerke mitzaehlen: ein Aufbauer verliert 0,4
-     * Jahre, ein Sparer 0,1. Erst ein Schritt von 10.000 (also 20.000, 30.000,
-     * bis 80.000) wird spuerbar, 15.000 bremst den Aufbauer wieder deutlich.
-     * Die Leiter ist hier also eher ein Gelaender gegen den Titelspurt mit
-     * leerer Truhe als eine echte Huerde.
+     * Die Zahl ist gemessen, nicht geraten. An 25 Laeufen zu 60 Jahren, mit
+     * mitzaehlenden Bauwerken:
+     *
+     *   Abstand je Stufe   Sparer   Aufbauer   (gebremste Jahre von 60)
+     *   5.000                 0,1        0,4   -- wirkungslos
+     *   10.000                1,3        4,2   -- spuerbar, ohne zu blockieren
+     *   15.000                5,9       15,0   -- so hart wie die alte Huerde
+     *
+     * Bei 10.000 rueckt der Aufstieg zum Fuersten beim Aufbauer von Anno 1738
+     * auf 1740; er wird gebremst, aber nicht aufgehalten.
      */
     titelVermoegen: true,
-    titelSchwelle: 5000
+    titelSchwelle: 10000
   }
 };
 
