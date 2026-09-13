@@ -200,3 +200,49 @@ test('Das Regelwerk überlebt einen Neustart', async () => {
   assert.equal(zurueck.regeln.id, 'neu');
   assert.equal(zurueck.regeln.name, 'Fassung 2026');
 });
+
+// ------------------------------------------- 7. Vermoegen beim Titelaufstieg
+
+function fuerst(mehr = {}) {
+  return Object.assign(R.neuerSpieler('a', 'A', false, 0), {
+    titel: 1, kasse: 4948, land: 14166, einwohner: 2033, punkte: 22, handel: 52,
+    wohlstand: 57.6, soldaten: 160, gebaeudeBonus: 1.52,
+    maerkte: 10, muehlen: 10, palast: 2, kathedrale: 0
+  }, mehr);
+}
+
+test('Die Bauwerke werden mit den Pfandbetraegen des Originals bewertet', () => {
+  // Zeile 728 bis 731: Kathedralenteil 2.500, Palastteil 1.500, Muehle 1.000,
+  // Markt 500. Andere Zahlen nennt das Spiel nirgends.
+  const s = fuerst({ maerkte: 2, muehlen: 3, palast: 4, kathedrale: 5 });
+  assert.equal(R.bauwerte(s), 2 * 500 + 3 * 1000 + 4 * 1500 + 5 * 2500);
+  assert.equal(R.vermoegenVon(s), s.kasse + R.bauwerte(s));
+});
+
+test('Im Original bleibt der Aufbauer ohne Titel, in der Fassung 2026 nicht', () => {
+  // Die Zahlen stammen aus der Runde SirNormi, Anno 1740.
+  assert.equal(R.aufstiegsPunkte(fuerst()), 38, 'das reicht fuer Stufe 4');
+  const alt = fuerst(), neu = fuerst();
+  assert.equal(R.titelPruefen(alt, REGELWERKE.original), 'geld', 'die Kasse ist zu leer');
+  assert.equal(alt.titel, 1, 'und er bleibt Herr');
+  assert.equal(R.titelPruefen(neu, REGELWERKE.neu), 2, 'mit den Bauwerken steigt er auf');
+  assert.equal(neu.titel, 2, 'eine Stufe je Jahr, wie im Original');
+});
+
+test('Wer Schulden hat, steigt auch mit Bauwerken nicht auf', () => {
+  const s = fuerst({ kasse: -8367 });
+  assert.equal(R.titelPruefen(s, REGELWERKE.neu), 'geld');
+  assert.equal(s.titel, 1);
+});
+
+test('Der letzte Schritt zum Kaiser verlangt weiter bares Geld', () => {
+  const s = fuerst({ titel: 8, kasse: 50000, maerkte: 30, muehlen: 20,
+                     palast: 16, kathedrale: 14, land: 120000, einwohner: 9000,
+                     punkte: 60, handel: 100, wohlstand: 900, soldaten: 900 });
+  assert.ok(R.aufstiegsPunkte(s) >= 81, 'die Punkte reichen');
+  assert.ok(R.vermoegenVon(s) > 100000, 'das Vermoegen auch');
+  assert.equal(R.titelPruefen(s, REGELWERKE.neu), 'geld', 'aber die Kasse nicht');
+  s.kasse = 100000;
+  assert.equal(R.titelPruefen(s, REGELWERKE.neu), 9, 'mit 100.000 in bar wird er Kaiser');
+  assert.ok(s.kaiser);
+});

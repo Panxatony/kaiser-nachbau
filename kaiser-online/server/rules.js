@@ -435,14 +435,50 @@ export function aufstiegsPunkte(s) {
 }
 
 /** Titelaufstieg, Zeile 607 und 740-753. Liefert den neuen Titel oder null. */
-export function titelPruefen(s) {
+/**
+ * Was die Bauwerke eines Fuersten wert sind.
+ *
+ * Die Zahlen sind nicht erfunden: es sind die Betraege, die das Original beim
+ * Bankrott dafuer erloest (Zeile 728 bis 731). Wer gepfaendet wird, bekommt je
+ * Kathedralenteil 2.500, je Palastteil 1.500, je Muehle 1.000 und je Markt
+ * 500 Taler. Das ist die einzige Stelle, an der das Spiel selbst sagt, was ein
+ * Bauwerk wert ist.
+ */
+export const bauwerte = s =>
+  s.kathedrale * 2500 + s.palast * 1500 + s.muehlen * 1000 + s.maerkte * 500;
+
+/** Kasse plus Bauwerke. */
+export const vermoegenVon = s => s.kasse + bauwerte(s);
+
+/**
+ * Titelaufstieg, Zeile 607 und 740-753.
+ *
+ * Liefert bei Erfolg den neuen Titel, sonst einen Grund: 'geld', wenn es
+ * allein am Vermoegen lag, sonst null.
+ */
+export function titelPruefen(s, regeln = STANDARD) {
   let stufe = int(aufstiegsPunkte(s) / 9);
   if (stufe > 9) stufe = 9;
   if (s.titel >= stufe) return null;
-  if (s.kasse < 9999) return null;
+
+  // Zeile 740: unter 9.999 Talern gibt es keinen Titel.
+  //
+  // In der Fassung 2026 zaehlen dabei auch die Bauwerke mit, solange die Kasse
+  // nicht im Minus steht. Sonst bestraft die Huerde genau das, was die Punkte
+  // bringt: wer seine Taler in Maerkte und Muehlen steckt, kommt nie ueber die
+  // Schwelle, und wer sie hortet, sammelt keine Punkte. Im Original fiel das
+  // nicht auf, weil der Zinseszins jede Kasse ueberlaufen liess.
+  if (regeln.titelVermoegen) {
+    if (s.kasse <= 0) return 'geld';
+    if (vermoegenVon(s) < 9999) return 'geld';
+  } else if (s.kasse < 9999) {
+    return 'geld';
+  }
+
   if (s.titel > 6 && s.palast < 16) return null;
   if (s.titel > 7 && (s.kathedrale < 14 || s.muehlen < 15 || s.maerkte < 25)) return null;
-  if (s.titel === 8 && s.kasse < 100000) return null;
+  // Der letzte Schritt verlangt bare Muenze, in beiden Regelwerken.
+  if (s.titel === 8 && s.kasse < 100000) return 'geld';
   s.titel += 1;
   if (s.titel > 8) { s.titel = 9; s.kaiser = true; }
   return s.titel;

@@ -3,7 +3,7 @@
 // "Original 1984" ist der Nachbau, Zeile für Zeile aus dem BASIC. So hat das
 // Spiel sich damals angefuehlt, mitsamt seinen Eigenheiten.
 //
-// "Fassung 2026" aendert sechs Stellen, an denen Messungen gezeigt haben, dass
+// "Fassung 2026" aendert sieben Stellen, an denen Messungen gezeigt haben, dass
 // das Spiel seine Spannung verliert. Jede Aenderung steht unten mit dem Befund,
 // der zu ihr gefuehrt hat. Alles andere bleibt, wie es war: Wetter, Ernte,
 // Kornkreislauf, Bevoelkerung, die zwoelf Kennzahlen des Titelaufstiegs und das
@@ -23,13 +23,14 @@ export const REGELWERKE = {
     heimvorteil: 0,
     schlachtStreuung: 0,
     sockelverlust: 0,
-    landJeFuerst: 0            // 0 heisst: Land entsteht aus dem Nichts
+    landJeFuerst: 0,           // 0 heisst: Land entsteht aus dem Nichts
+    titelVermoegen: false
   },
 
   neu: {
     id: 'neu',
     name: 'Fassung 2026',
-    kurz: 'Sechs Regeln geändert, damit Geld knapp bleibt und Kriege ein Wagnis sind.',
+    kurz: 'Sieben Regeln geändert, damit Geld knapp bleibt und Kriege ein Wagnis sind.',
 
     /**
      * 1. Zinsen nur auf Kapital bis zur Bonitaet.
@@ -118,7 +119,32 @@ export const REGELWERKE = {
      * Damit wird aus dem Wettlauf um den Titel ein Wettlauf um Boden, und der
      * Krieg bekommt den Zweck, den das Handbuch ihm zuschreibt.
      */
-    landJeFuerst: 30000
+    landJeFuerst: 30000,
+
+    /**
+     * 7. Beim Titel zaehlt das Vermoegen, nicht nur die Kasse.
+     *
+     * Befund: Zeile 740 verlangt 9.999 Taler in der Kasse, sonst gibt es
+     * keinen Titel -- ohne jede Meldung. Im Original fiel das nie auf, weil
+     * der Zinseszins jede Kasse ueberlaufen liess. Mit gedeckelten Zinsen ist
+     * es die schaerfste Bremse im Spiel geworden: in der Runde SirNormi stand
+     * ein Fuerst Anno 1740 mit 38 Punkten auf Stufe 4 und hiess trotzdem Herr,
+     * weil 5.000 Taler fehlten.
+     *
+     * Die Huerde bestraft damit genau das, was die Punkte bringt. Zehntausend
+     * Taler in der Truhe bringen einem Herrn 1.000 Taler Zinsen und 2 Punkte;
+     * dieselben zehntausend in zehn Maerkten bringen 1.270 bis 2.540 Taler im
+     * Jahr, dauerhaft, und 10 Punkte.
+     *
+     * Darum zaehlen hier auch die Bauwerke mit, solange die Kasse nicht im
+     * Minus steht. Bewertet werden sie mit den Betraegen, die das Original
+     * selbst dafuer erloest, wenn es pfaendet (Zeile 728 bis 731): 2.500 je
+     * Kathedralenteil, 1.500 je Palastteil, 1.000 je Muehle, 500 je Markt.
+     *
+     * Der letzte Schritt zur Kaiserwuerde bleibt unberuehrt: dort verlangt
+     * Zeile 743 100.000 Taler in bar, und dabei bleibt es.
+     */
+    titelVermoegen: true
   }
 };
 

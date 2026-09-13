@@ -206,13 +206,16 @@ function lobbyAufbauen() {
     const h = $('regelHinweis');
     if (!h) return;
     h.innerHTML = $('nRegelwerk').value === 'neu'
-      ? 'Sechs Regeln sind geändert, damit Geld knapp bleibt und ein Krieg ein Wagnis ist: '
+      ? 'Sieben Regeln sind geändert, damit Geld knapp bleibt und ein Krieg ein Wagnis ist: '
         + 'Zinsen gibt es nur noch auf Kapital bis zur Bonität, die Moral kehrt zur Mitte '
         + 'zurück statt gegen null zu fallen, Manöver bringen mit jedem weiteren im Jahr '
         + 'nur noch die Hälfte, der Verteidiger hat einen Heimvorteil, der Ausgang einer '
         + 'Schlacht streut und kostet auch den Sieger, und das Reich hat eine feste Fläche: '
         + '30.000 Hektar je Fürstentum am Tisch. Ist die aufgekauft, wechselt Land nur noch '
-        + 'durch Krieg den Besitzer. Die Moral selbst bleibt dabei so unsichtbar wie im '
+        + 'durch Krieg den Besitzer. Beim Titelaufstieg zählen außerdem die Bauwerke zum '
+        + 'Vermögen, solange die Kasse nicht im Minus steht &mdash; sonst bestraft die alte '
+        + 'Geldhürde genau den, der sein Land aufbaut. Für die Kaiserwürde bleiben es '
+        + '100.000 Taler in bar. Die Moral selbst bleibt dabei so unsichtbar wie im '
         + 'Original; nur ihre Regel ist eine andere.'
       : 'Die Regeln des C64-Spiels von 1984, Zeile für Zeile nachgebaut, mitsamt seinen '
         + 'Eigenheiten.';

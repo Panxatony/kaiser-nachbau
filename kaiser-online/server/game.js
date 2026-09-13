@@ -689,8 +689,14 @@ export class Spiel {
         // naechsten Spieler, es gibt also weder Titel noch Zinsen.
         eintrag.zeremonien.push({ art: 'bankrott', anrede: R.anrede(s) });
       } else if (!z.aussetzen) {
-        const neuerTitel = R.titelPruefen(s);
-        if (neuerTitel) {
+        const neuerTitel = R.titelPruefen(s, this.regeln);
+        if (neuerTitel === 'geld') {
+          // Das Original schweigt hier. Es konnte sich das leisten, weil seine
+          // Kassen ueberliefen; bei uns ist es der haeufigste Grund, warum ein
+          // Aufstieg ausbleibt, und niemand sah es. Eigene Zutat, TEXTE.md.
+          eintrag.meldungen.push({ art: 'warnung',
+            text: 'Ein neuer Titel hätte Ihnen zugestanden, doch Ihr Vermögen reichte nicht.' });
+        } else if (neuerTitel) {
           const name = TITEL[neuerTitel - 1][s.weiblich ? 1 : 0];
           eintrag.meldungen.push({ art: 'titel', text: `Ihnen wird ein neuer Titel verliehen! Sie sind nun ${R.anrede(s)}.` });
           eintrag.titel = name;

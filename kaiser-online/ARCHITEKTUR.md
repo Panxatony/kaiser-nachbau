@@ -205,7 +205,7 @@ Beim Eröffnen einer Runde wählt man zwischen **Original 1984** und
 
 *Original 1984* ist der Nachbau, Zeile für Zeile aus dem BASIC.
 
-*Fassung 2026* ändert sechs Stellen, an denen Messungen gezeigt haben, dass das
+*Fassung 2026* ändert sieben Stellen, an denen Messungen gezeigt haben, dass das
 Spiel seine Spannung verliert. Jede Änderung steht in `server/regelwerk.js` mit
 dem Befund, der zu ihr geführt hat:
 
@@ -217,6 +217,13 @@ dem Befund, der zu ihr geführt hat:
 | Heimvorteil für den Verteidiger | bei gleicher Stärke gewinnt der Angreifer 58 von 60 Schlachten |
 | Schlachtausgang streut und kostet auch den Sieger | 12 gegen 20 Einheiten verliert 59 von 60, 32 gegen 20 gewinnt 60 von 60 |
 | Das Reich hat 30.000 Hektar je Fürstentum | Land entsteht aus dem Nichts, deshalb ist Krieg nie nötig |
+| Beim Titel zählen die Bauwerke zum Vermögen | die Hürde von 9.999 Talern (Zeile 740) bremste einen Aufbauer in 16 von 60 Jahren, einen Sparer nie |
+
+Die Bauwerke werden dabei mit den Beträgen bewertet, die das Original beim
+Bankrott dafür erlöst (Zeile 728 bis 731): 2.500 je Kathedralenteil, 1.500 je
+Palastteil, 1.000 je Mühle, 500 je Markt. Die Kasse muss trotzdem über null
+stehen, und der letzte Schritt zur Kaiserwürde verlangt weiterhin 100.000
+Taler in bar (Zeile 743).
 
 Alles andere ist in beiden Fassungen gleich: Wetter, Ernte, Kornkreislauf,
 Bevölkerung, die zwölf Kennzahlen des Titelaufstiegs und das gemeinsame
