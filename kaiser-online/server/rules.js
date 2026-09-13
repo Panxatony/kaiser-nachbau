@@ -451,6 +451,27 @@ export const bauwerte = s =>
 export const vermoegenVon = s => s.kasse + bauwerte(s);
 
 /**
+ * Was ein Fuerst vorweisen muss, um den naechsten Titel zu bekommen.
+ *
+ * Das Original kennt einen festen Betrag: 9.999 Taler, Zeile 740, vom Herrn
+ * bis zum Koenig derselbe. In der Fassung 2026 steigt die Schwelle mit dem
+ * Rang -- die erste Befoerderung kostet weiterhin 9.999, jede weitere mehr:
+ *
+ *   Herr -> Baron          9.999
+ *   Baron -> Landgraf     15.000
+ *   Landgraf -> Markgraf  20.000
+ *   ...
+ *   Koenig -> Kaiser      45.000   (dazu 100.000 in bar, Zeile 743)
+ *
+ * `titelSchwelle` ist der Abstand zwischen zwei Stufen. Steht er auf 0, bleibt
+ * es beim festen Betrag des Originals.
+ */
+export function titelSchwelleFuer(titel, regeln = STANDARD) {
+  if (!regeln.titelSchwelle) return 9999;
+  return titel <= 1 ? 9999 : 10000 + (titel - 1) * regeln.titelSchwelle;
+}
+
+/**
  * Titelaufstieg, Zeile 607 und 740-753.
  *
  * Liefert bei Erfolg den neuen Titel, sonst einen Grund: 'geld', wenn es
@@ -468,10 +489,11 @@ export function titelPruefen(s, regeln = STANDARD) {
   // bringt: wer seine Taler in Maerkte und Muehlen steckt, kommt nie ueber die
   // Schwelle, und wer sie hortet, sammelt keine Punkte. Im Original fiel das
   // nicht auf, weil der Zinseszins jede Kasse ueberlaufen liess.
+  const schwelle = titelSchwelleFuer(s.titel, regeln);
   if (regeln.titelVermoegen) {
     if (s.kasse <= 0) return 'geld';
-    if (vermoegenVon(s) < 9999) return 'geld';
-  } else if (s.kasse < 9999) {
+    if (vermoegenVon(s) < schwelle) return 'geld';
+  } else if (s.kasse < schwelle) {
     return 'geld';
   }
 

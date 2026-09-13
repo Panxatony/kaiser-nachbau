@@ -246,3 +246,27 @@ test('Der letzte Schritt zum Kaiser verlangt weiter bares Geld', () => {
   assert.equal(R.titelPruefen(s, REGELWERKE.neu), 9, 'mit 100.000 in bar wird er Kaiser');
   assert.ok(s.kaiser);
 });
+
+test('Die Schwelle steigt mit dem Rang', () => {
+  // Original: ein fester Betrag, Zeile 740. Fassung 2026: die erste
+  // Befoerderung kostet dasselbe, jede weitere 5.000 mehr.
+  for (let t = 1; t <= 8; t++) {
+    assert.equal(R.titelSchwelleFuer(t, REGELWERKE.original), 9999,
+      `im Original bleibt es bei 9.999, auch als Titel ${t}`);
+  }
+  assert.equal(R.titelSchwelleFuer(1, REGELWERKE.neu), 9999, 'die erste kostet gleich viel');
+  assert.equal(R.titelSchwelleFuer(2, REGELWERKE.neu), 15000);
+  assert.equal(R.titelSchwelleFuer(3, REGELWERKE.neu), 20000);
+  assert.equal(R.titelSchwelleFuer(8, REGELWERKE.neu), 45000, 'der letzte Schritt ist der teuerste');
+});
+
+test('Ein Aufsteiger ohne Besitz bleibt an der hoeheren Stufe haengen', () => {
+  // Punkte genug fuer Stufe 5, aber nur 12.000 Taler und nichts gebaut.
+  const s = fuerst({ titel: 2, kasse: 12000, maerkte: 0, muehlen: 0, palast: 0,
+                     kathedrale: 0, land: 60000, einwohner: 8000, punkte: 60,
+                     handel: 90, wohlstand: 600, soldaten: 500 });
+  assert.ok(Math.trunc(R.aufstiegsPunkte(s) / 9) > s.titel, 'die Punkte reichen');
+  assert.equal(R.titelPruefen(s, REGELWERKE.neu), 'geld', '15.000 waeren noetig');
+  s.kasse = 15000;
+  assert.equal(R.titelPruefen(s, REGELWERKE.neu), 3, 'damit geht es');
+});

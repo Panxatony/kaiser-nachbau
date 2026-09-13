@@ -24,7 +24,8 @@ export const REGELWERKE = {
     schlachtStreuung: 0,
     sockelverlust: 0,
     landJeFuerst: 0,           // 0 heisst: Land entsteht aus dem Nichts
-    titelVermoegen: false
+    titelVermoegen: false,
+    titelSchwelle: 0          // 0 heisst: fester Betrag von 9.999 Talern
   },
 
   neu: {
@@ -143,8 +144,22 @@ export const REGELWERKE = {
      *
      * Der letzte Schritt zur Kaiserwuerde bleibt unberuehrt: dort verlangt
      * Zeile 743 100.000 Taler in bar, und dabei bleibt es.
+     *
+     * Die Schwelle selbst steigt ausserdem mit dem Rang. Im Original ist sie
+     * vom Herrn bis zum Koenig dieselbe, was sie oben bedeutungslos macht:
+     * wer schon ein Fuerstentum aufgebaut hat, hat 9.999 Taler immer. Hier
+     * kostet die erste Befoerderung weiterhin 9.999, jede weitere 5.000 mehr
+     * -- 15.000, 20.000, bis zu 45.000 fuer den letzten Schritt.
+     *
+     * Gemessen an 25 Laeufen zu 60 Jahren bremst diese Leiter allerdings so
+     * gut wie nie, sobald die Bauwerke mitzaehlen: ein Aufbauer verliert 0,4
+     * Jahre, ein Sparer 0,1. Erst ein Schritt von 10.000 (also 20.000, 30.000,
+     * bis 80.000) wird spuerbar, 15.000 bremst den Aufbauer wieder deutlich.
+     * Die Leiter ist hier also eher ein Gelaender gegen den Titelspurt mit
+     * leerer Truhe als eine echte Huerde.
      */
-    titelVermoegen: true
+    titelVermoegen: true,
+    titelSchwelle: 5000
   }
 };
 
