@@ -82,6 +82,16 @@ alle Zahlen, die ohnehin auf dem Bildschirm stehen: Kornreserve, nötiges Korn,
 Preise, Landbesitz, Vermögen, Einwohner, Soldaten, Truppenpreise, Steuerbeträge,
 Baukosten, Bestände.
 
+### Eigene Zutaten, die dennoch angezeigt werden
+
+* **Die bestellte Fläche** im Bild „Ernte und Preise". Das Original zeigt sie
+  nicht. Sie ist aber eine Zahl, keine Formel, und ohne sie ist nicht zu sehen,
+  warum eine Ernte klein bleibt, obwohl das Land groß ist. In der Runde
+  *SirNormi* hat genau das eine Partie entschieden: 22.166 Hektar Besitz,
+  davon 3.445 bestellt, weil 17 Mühlen 1.700 der 2.389 Einwohner banden. Wer
+  das nicht sieht, kann es auch nicht lernen. Warum die Fläche begrenzt ist,
+  sagen wir weiterhin nicht — das bleibt zu entdecken.
+
 ### Offene Ermessensfragen
 
 * **„Taler je 1000 Maß“**: Das Original schreibt nur „Kornpreis 97 Taler“ und

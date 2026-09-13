@@ -121,7 +121,12 @@ export function ernte(s, rnd, regeln = STANDARD) {
   let kornpreis = int((20 - 3 * wetter + rnd() * 10) * 8 * verhaeltnis);
   if (kornpreis < 1) kornpreis = 1;
 
-  return { wetter, verfault, kornpreis, landpreis, bedarf, ernteMenge: int(zuwachs) };
+  // flaeche ist die tatsaechlich bestellte Flaeche, also das Kleinste aus
+  // Landbesitz, (Einwohner - Muehlen*100)*5 und Korn*2. Das Original zeigt sie
+  // nicht; wir nennen sie, weil sonst nicht zu sehen ist, warum die Ernte
+  // klein bleibt, obwohl das Land gross ist (siehe TEXTE.md).
+  return { wetter, verfault, kornpreis, landpreis, bedarf,
+           ernteMenge: int(zuwachs), flaeche: int(d) };
 }
 
 /** Korn kaufen, Zeile 494-497. Maximal 3x Bedarf pro Runde. */

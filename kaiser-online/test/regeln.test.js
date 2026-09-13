@@ -114,3 +114,21 @@ test('Markt und Mühle rechnen die Armee neu, Palast und Kathedrale nicht', () =
   R.bauen(m, 'markt', () => 0.5);
   assert.ok(m.soldaten >= vorher, 'der Markt rechnet sofort neu');
 });
+
+test('Die Ernte nennt die bestellte Flaeche', () => {
+  // Bestellt wird das Kleinste aus Landbesitz, (Einwohner - Muehlen*100)*5
+  // und Korn*2 (Zeile 466 bis 468). Ohne diese Zahl sieht niemand, warum eine
+  // Ernte klein bleibt, obwohl das Land gross ist.
+  const s = R.neuerSpieler('a', 'A', false, 0);
+  Object.assign(s, { land: 22000, einwohner: 2389, muehlen: 17, korn: 20000 });
+  const m = R.ernte(s, R.makeRng(1));
+  assert.equal(m.flaeche, (2389 - 1700) * 5, 'die Muehlen binden die Landarbeiter');
+
+  const t = R.neuerSpieler('b', 'B', false, 0);
+  Object.assign(t, { land: 4000, einwohner: 6000, muehlen: 0, korn: 20000 });
+  assert.equal(R.ernte(t, R.makeRng(1)).flaeche, 4000, 'sonst begrenzt das Land');
+
+  const u = R.neuerSpieler('c', 'C', false, 0);
+  Object.assign(u, { land: 40000, einwohner: 6000, muehlen: 0, korn: 500 });
+  assert.equal(R.ernte(u, R.makeRng(1)).flaeche, 1000, 'oder das Saatgut');
+});

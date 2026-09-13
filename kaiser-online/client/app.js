@@ -779,13 +779,20 @@ function seiteErnte(r, i) {
     <div class="tabellenhuelle"><table>
       <tr><td>Kornreserve</td><td class="zahl">${zahl(i.korn)}</td><td>Maß</td></tr>
       <tr><td>Nötiges Korn</td><td class="zahl">${zahl(i.bedarf)}</td><td>Maß</td></tr>
+      ${r.markt.flaeche == null ? '' : `<tr><td>Bestellte Fläche</td>
+        <td class="zahl">${zahl(r.markt.flaeche)}</td><td>Hektar</td></tr>`}
       <tr><td>Kornpreis</td><td class="zahl">${zahl(r.markt.kornpreis)}</td><td>Taler je 1000 Maß</td></tr>
       <tr><td>Landpreis</td><td class="zahl">${r.markt.landpreis.toFixed(1)}</td><td>Taler je Hektar</td></tr>
       <tr><td>Landbesitz</td><td class="zahl">${zahl(i.land)}</td><td>Hektar</td></tr>
       <tr><td>Vermögen</td><td class="zahl">${zahl(i.kasse)}</td><td>Taler</td></tr>
     </table></div>
     <div id="speicherErnte"></div>
-    ${anteil < 1 ? '<p class="meldung warnung">Die Reserve deckt den Bedarf nicht.</p>' : ''}`;
+    ${anteil < 1 ? '<p class="meldung warnung">Die Reserve deckt den Bedarf nicht.</p>' : ''}
+    ${r.markt.flaeche != null && r.markt.flaeche < i.land
+      ? `<p class="meldung warnung">Bestellt wurden nur ${zahl(r.markt.flaeche)} Ihrer
+          ${zahl(i.land)} Hektar. Der Rest lag brach.</p>` : ''}
+    <p class="klein">Die bestellte Fläche zeigt das Original nicht; wir nennen sie, weil
+       sonst nicht zu sehen ist, warum eine Ernte klein bleibt, obwohl das Land groß ist.</p>`;
 }
 
 /**
