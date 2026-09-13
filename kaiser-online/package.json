@@ -1,6 +1,6 @@
 {
   "name": "kaiser-online",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Browser-Mehrspieler-Nachbau des C64-Spiels Kaiser mit parallelen Zügen",
   "type": "module",
   "main": "server/index.js",
