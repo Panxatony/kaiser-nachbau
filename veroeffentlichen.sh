@@ -24,6 +24,13 @@ QUELLE=$(git rev-parse --show-toplevel)
 
 # ---------------------------------------------------------------- Kontrolle
 
+# Das Changelog gehoert gepflegt, bevor etwas hinausgeht. Es ist kein Zwang --
+# nicht jede Aenderung ist einen Eintrag wert --, aber eine Erinnerung.
+if [ -n "$NACHRICHT" ] && ! git -C "$QUELLE" diff HEAD~5..HEAD --name-only 2>/dev/null | grep -q CHANGELOG.md; then
+  echo "Hinweis: CHANGELOG.md wurde in den letzten fuenf Commits nicht angefasst."
+  echo
+fi
+
 if [ -n "$(git -C "$QUELLE" status --porcelain)" ]; then
   echo "Der Arbeitsbaum ist nicht sauber. Erst committen, dann veroeffentlichen."
   git -C "$QUELLE" status --short

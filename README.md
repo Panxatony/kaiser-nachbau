@@ -72,6 +72,7 @@ jedes Byte stammt, steht in `GRAFIK.md` und `MUSIK.md`.
 
 | Datei | Inhalt |
 |-------|--------|
+| `CHANGELOG.md` | Was sich von Fassung zu Fassung geändert hat, Regeländerungen eigens ausgewiesen |
 | `SPIELMECHANIK.md` | Alle Spielregeln und Formeln, hergeleitet aus dem BASIC-Original |
 | `TEXTE.md` | Was der Nachbau erklären darf: nur, was auf dem C64-Bildschirm stand oder im Handbuch steht |
 | `GRAFIK.md` | Aufbau der Grafikdaten: zwei Zeichensätze, Titel- und Abspannbild |
