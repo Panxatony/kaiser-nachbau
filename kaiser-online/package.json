@@ -9,7 +9,7 @@
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
-    "nodemailer": "^10.0.3",
+    "nodemailer": "^10.0.10",
     "ws": "^8.18.0"
   },
   "license": "MIT"
