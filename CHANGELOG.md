@@ -17,6 +17,11 @@ sechzig Jahren spielt. Wo eine Regel vom Original abweicht, steht es dabei.
   Standardabläufe und die Fehler, die in diesem Projekt schon gemacht
   wurden, jeweils mit Ursache und richtigem Weg. `CLAUDE.md` verweist darauf.
   Die Angaben einer bestimmten Installation stehen bewusst nicht darin.
+- `nodemailer` auf 10.6.1 angehoben. Die Fassung 10.0.3 hatte acht gemeldete
+  Lücken im Adressparser, zwei davon schwer: quadratisches Backtracking,
+  mit dem eine lange Adresszeile den Versand lahmlegt, und Parserfehler, bei
+  denen Anzeigetext zum Empfänger werden kann. Betroffen war nur der
+  Mailversand für Einladungen.
 - `scripts/ausrollen.sh` rollt den Server aus und **kann den Ordner `daten`
   nicht mitschicken**: es überträgt eine feste Liste, lässt vorher die Tests
   laufen, zeigt die Partien, die auf dem Server gerade laufen, und sieht
