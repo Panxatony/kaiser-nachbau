@@ -23,6 +23,12 @@ __pycache__/
 kaiser-online/client/_*.html
 kaiser-online/client/_*.json
 
+# Die eigenen Server, Adressen und Pfade dieser Installation
+AGENTS.lokal.md
+
 # Handbuch und Cover des Originals, nicht ins Repo
 kaiser_anl/
 kaiser_cov/
+
+# Von macOS mitgebracht, ueber eine Freigabe hereingekommen
+.DS_Store

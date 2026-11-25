@@ -11,7 +11,7 @@
 # Uebertragen wird nur, was `git ls-files` kennt. Damit bleiben von selbst
 # draussen: das Diskettenabbild, die entpackten Programmdateien, Zeichensaetze,
 # Bilder, Musik, der Ordner daten/ mit Konten und Spielstaenden, das Handbuch
-# und BETRIEB.lokal.md mit den eigenen Servern.
+# sowie BETRIEB.lokal.md und AGENTS.lokal.md mit den eigenen Servern.
 #
 # Vor jedem Commit laeuft eine Kontrolle. Findet sie Originalmaterial oder die
 # eigenen Adressen, bricht das Skript ab, bevor etwas festgeschrieben wird.
@@ -85,7 +85,7 @@ done
 FREMD=$(find "$ZIEL" -path "$ZIEL/.git" -prune -o \
   \( -name '*.d64' -o -name '*.prg' -o -name '*.sid' -o -name '*.seq' \
      -o -name '*.bas' -o -path '*/assets/*' -o -path '*/daten/*' \
-     -o -name 'BETRIEB.lokal.md' \) -print)
+     -o -name 'BETRIEB.lokal.md' -o -name 'AGENTS.lokal.md' \) -print)
 if [ -n "$FREMD" ]; then
   echo "Originalmaterial oder Betriebsdaten in der Kopie:"
   echo "$FREMD" | sed "s|$ZIEL/|  |"

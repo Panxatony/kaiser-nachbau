@@ -10,7 +10,17 @@ sechzig Jahren spielt. Wo eine Regel vom Original abweicht, steht es dabei.
 
 ## [Unveröffentlicht]
 
-Noch nichts.
+### Werkzeuge und Betrieb
+
+- `AGENTS.md`: was man wissen muss, bevor man hier etwas ändert oder
+  ausrollt — die verbindlichen Regeln, der Aufbau der Systeme, die
+  Standardabläufe und die Fehler, die in diesem Projekt schon gemacht
+  wurden, jeweils mit Ursache und richtigem Weg. `CLAUDE.md` verweist darauf.
+  Die Angaben einer bestimmten Installation stehen bewusst nicht darin.
+- `scripts/ausrollen.sh` rollt den Server aus und **kann den Ordner `daten`
+  nicht mitschicken**: es überträgt eine feste Liste, lässt vorher die Tests
+  laufen, zeigt die Partien, die auf dem Server gerade laufen, und sieht
+  danach nach, ob der Dienst wieder steht.
 
 ## [1.0.0] – 2026-09-13
 
