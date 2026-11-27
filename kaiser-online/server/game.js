@@ -435,7 +435,7 @@ export class Spiel {
       if (!offen.length) return { fehler: 'Sie haben nichts mehr zu setzen.' };
 
       const zeile = R.int(daten.zeile);
-      const spalte = B.spalteEinpassen(daten.spalte, istAngreifer);
+      const spalte = B.spalteEinpassen(daten.spalte, istAngreifer, krieg.feld, zeile);
       if (!this.platzFrei(krieg, zeile, spalte)) {
         return { fehler: 'Dort ist kein Platz für eine Einheit.' };
       }

@@ -45,6 +45,12 @@ sechzig Jahren spielt. Wo eine Regel vom Original abweicht, steht es dabei.
     das den Angreifer keine Moral — eine Unsymmetrie des Originals (Zeile 200
     gegen 248).
 
+  - **Aufstellen darf man bis an die Grenze**, und die läuft in jeder Zeile
+    anders. Bisher endete der Bereich fest in Spalte 18 und 21; je nach
+    Zeile sind es jetzt bis zu zwei Spalten mehr oder drei weniger. Die Regel
+    stammt aus der Maschinenroutine hinter `SYSm,33`, die dafür disassembliert
+    wurde: sie erkennt genau fünf Zeichen als Grenze.
+
   *Gemessen* an 400 Schlachten gleich starker Heere: das Kräfteverhältnis
   bleibt (Angreifer verliert im Mittel 2.362 statt 2.431 Hektar), aber der
   Schaden verlagert sich — 1,37 statt 1,95 zerstörte Märkte, 0,26 statt 0,18

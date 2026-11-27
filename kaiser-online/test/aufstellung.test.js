@@ -255,8 +255,24 @@ test('Ausserhalb des eigenen Bereichs wird eingepasst', () => {
   R.armeeAktualisieren(a); R.armeeAktualisieren(v);
   const f = B.feldAufbauen(a, v, R.makeRng(9));
   const gesetzt = B.aufstellen(f, a, true, [{ gattung: 'infanterie', zeile: 20, spalte: 35 }], () => 20);
-  assert.ok(gesetzt[0].spalte <= B.AUFSTELLUNG.angreifer.bis,
-    'der Angreifer kommt nicht ins Feindesland: ' + gesetzt[0].spalte);
+  const grenze = B.grenzeInZeile(f.z, gesetzt[0].zeile);
+  assert.equal(gesetzt[0].spalte, grenze.links - 2,
+    'der Angreifer kommt bis an die Grenze, nicht hinueber (Zeile 370)');
+  const hinten = B.aufstellen(f, v, false, [{ gattung: 'infanterie', zeile: 30, spalte: 2 }], () => 30);
+  assert.equal(hinten[0].spalte, B.grenzeInZeile(f.z, hinten[0].zeile).rechts + 1,
+    'der Verteidiger ebenso von der anderen Seite (Zeile 385)');
+});
+
+test('Grenzzeichen sind genau die fuenf, die SYSm,33 erkennt', () => {
+  // Disassembliert bei $AB47: 128, 240, 247, 248, 251. Die 239 der Mauer nicht.
+  assert.deepEqual([...B.GRENZZEICHEN].sort((x, y) => x - y), [128, 240, 247, 248, 251]);
+  const a = R.neuerSpieler('a', 'A', false, 0), v = R.neuerSpieler('v', 'V', false, 1);
+  const f = B.feldAufbauen(a, v, R.makeRng(4));
+  for (let z = 0; z < B.ZEILEN; z++) {
+    const g = B.grenzeInZeile(f.z, z);
+    assert.ok(g && g.links >= 17 && g.rechts <= 23, 'die Grenze liegt in jeder Zeile zwischen Spalte 17 und 23');
+    assert.ok(g.rechts - g.links <= 1, 'und ist ein oder zwei Zeichen breit');
+  }
 });
 
 // ---------------------------------------------------------- Der Feldherr

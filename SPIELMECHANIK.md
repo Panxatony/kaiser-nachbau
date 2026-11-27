@@ -379,8 +379,20 @@ eine mäandernde Grenze um Spalte 19–21. Pro Seite werden gezeichnet (404–42
 - Zehn Flüsse, 110 Versuche für Bäume, 60 für Buschwerk (424–429).
 
 **Aufstellung**: Die Seite mit mehr Soldaten stellt zuerst, bis Gleichstand, dann
-abwechselnd je eine Einheit. Angreifer stellt in Spalte 13, Verteidiger in Spalte 26,
-Zeile frei wählbar. Miliz kann aufgestellt werden, greift aber nicht an (verteidigt nur).
+abwechselnd je eine Einheit. Der Cursor des Angreifers startet in Spalte 13, der des
+Verteidigers in Spalte 26; Zeile frei wählbar. Seitwärts geht es bis an den eigenen Rand
+und **bis an die Grenze**: beim Angreifer, bis rechts neben der Einheit ein Grenzzeichen
+steht (Zeile 370, `SYSm,33,x+2`), beim Verteidiger, bis links neben ihr eines steht
+(Zeile 385, `SYSm,33,x-1`). Die Grenze mäandert zwischen Spalte 17 und 23, also ist das
+in jeder Zeile eine andere Spalte.
+
+**`SYSm,33`** ist Funktion 33 der Maschinenroutinen (`m=901`: Zeile `$0385` holt die
+Nummer und springt nach `$A001`, Sprungtabelle bei `$A014`, Einsprung `$AB47`).
+Disassembliert am 27.11.2026: sie liest das Zeichen an der übergebenen Adresse und legt
+1 in Speicherstelle 716 (`PEEK(l)`), wenn es **128, 240, 247, 248 oder 251** ist, sonst 0.
+Das sind die fünf Zeichen der Grenze und der Mauerlinie; die 239 der Mauer-Längsseiten
+gehört nicht dazu. Dieselbe Routine prüft beim Marsch den Grenzübertritt (162, 207) und
+sperrt den Aufstellcursor nach oben und unten (95, 100). Miliz kann aufgestellt werden, greift aber nicht an (verteidigt nur).
 
 **Angriffsphase** (Zeilen 0→75, dann Gegenangriff des Verteidigers 75→0, gespiegelt):
 pro Zeile marschieren Kavallerie und Infanterie auf den Gegner zu, Artillerie schießt.

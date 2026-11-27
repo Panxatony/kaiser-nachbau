@@ -197,3 +197,22 @@ test('Ohne Grenzverlauf bleibt es bei der Startspalte', () => {
   const z = A.zustandAus(krieg());
   assert.equal(A.feldherrSpalte(z, 5), 13);
 });
+
+test('Der Bereich folgt der Grenze Zeile fuer Zeile, wie beim Server', () => {
+  // Grenze in Zeile 10 weit rechts (240 in Spalte 22), in Zeile 11 weit links
+  // (251 und 247 in Spalte 17 und 18).
+  const mitGrenze = ist => {
+    const k = krieg(ist);
+    k.feld[10 * A.SPALTEN + 22] = 240;
+    k.feld[11 * A.SPALTEN + 17] = 251; k.feld[11 * A.SPALTEN + 18] = 247;
+    return A.zustandAus(k);
+  };
+  const a = mitGrenze(true);
+  assert.equal(A.spalteEinpassen(a, 30, 10), 20, 'zwei Spalten vor dem Grenzzeichen');
+  assert.equal(A.spalteEinpassen(a, 30, 11), 15);
+  assert.equal(A.spalteEinpassen(a, 30, 12), 18, 'ohne Grenze in der Zeile die feste Spalte');
+  assert.ok(A.feldFrei(a, 10, 20) && !A.feldFrei(a, 10, 21));
+  const v = mitGrenze(false);
+  assert.equal(A.spalteEinpassen(v, 0, 10), 23, 'eine Spalte hinter dem Grenzzeichen');
+  assert.equal(A.spalteEinpassen(v, 0, 11), 19);
+});

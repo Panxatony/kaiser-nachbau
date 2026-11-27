@@ -38,6 +38,8 @@ const MARSCH = {
   verteidiger: { kavallerie: { kraft: 2, weite: 20 }, infanterie: { kraft: 1, weite: 13 } }
 };
 
+// Fuer den Marsch: Grenze und Mauer zusammen. Die 239 der Mauer-Laengsseiten
+// erkennt SYSm,33 nicht (siehe GRENZZEICHEN); Zeile 166 und 211 nennen sie eigens.
 const istGrenze = c => T.grenze.includes(c) || c === 239;
 // Zeile 69 nennt 111, 0, 119, 120 und 123.
 const istFluss  = c => c === 111 || c === 0 || c === 119 || c === 120 || c === 123;
@@ -249,9 +251,54 @@ export const AUFSTELLUNG = {
   letzteZeile: ZEILEN - 2
 };
 
-/** Passt eine Spalte in den erlaubten Bereich der Seite ein. */
-export function spalteEinpassen(spalte, istAngreifer) {
-  const g = AUFSTELLUNG[istAngreifer ? 'angreifer' : 'verteidiger'];
+/**
+ * Die Zeichen, die das Original als Grenze erkennt.
+ *
+ * Disassembliert aus der Maschinenroutine hinter SYSm,33 (Funktion 33 der
+ * Sprungtabelle bei $A014, Einsprung $AB47): sie holt eine Adresse, liest
+ * das Zeichen dort und legt 1 in Speicherstelle 716 (im BASIC: PEEK(l)), wenn
+ * es 128, 240, 247, 248 oder 251 ist, sonst 0. Die 239 der Mauer-Laengsseiten
+ * gehoert NICHT dazu.
+ *
+ *   AB50 LDY #$00 / LDA ($14),Y
+ *   AB54 CMP #$80 / BEQ  AB58 CMP #$F0 / BEQ  AB5C CMP #$F7 / BEQ
+ *   AB60 CMP #$F8 / BEQ  AB64 CMP #$FB / BEQ
+ *   AB68 LDA #$00 (sonst LDA #$01)  AB6D STA $02CC
+ */
+export const GRENZZEICHEN = [128, 240, 247, 248, 251];
+
+/**
+ * Wo in einer Zeile die Grenze liegt: die Spalte ihres linken und ihres
+ * rechten Zeichens. Gesucht wird nur in der Mitte des Feldes; dieselben
+ * Zeichen stehen auch in den Mauern der Hauptstaedte am Rand.
+ */
+export function grenzeInZeile(feldZ, zeile) {
+  let links = -1, rechts = -1;
+  for (let c = 15; c <= 25; c++) {
+    if (!GRENZZEICHEN.includes(feldZ[zeile * SPALTEN + c])) continue;
+    if (links < 0) links = c;
+    rechts = c;
+  }
+  return links < 0 ? null : { links, rechts };
+}
+
+/**
+ * Passt eine Spalte in den erlaubten Bereich der Seite ein.
+ *
+ * Mit Feld und Zeile gilt die Regel des Originals: der Cursor des Angreifers
+ * geht nach rechts, bis rechts neben der Einheit ein Grenzzeichen steht
+ * (Zeile 370: SYSm,33,x+2), der des Verteidigers nach links, bis links neben
+ * ihr eines steht (Zeile 385: SYSm,33,x-1). Die Grenze maeandert, also ist
+ * das in jeder Zeile eine andere Spalte. Ohne Feld bleibt es bei den festen
+ * Spalten aus AUFSTELLUNG.
+ */
+export function spalteEinpassen(spalte, istAngreifer, feldZ = null, zeile = null) {
+  const g = { ...AUFSTELLUNG[istAngreifer ? 'angreifer' : 'verteidiger'] };
+  const grenze = feldZ && zeile != null && zeile >= 0 && zeile < ZEILEN ? grenzeInZeile(feldZ, zeile) : null;
+  if (grenze) {
+    if (istAngreifer) g.bis = grenze.links - 2;
+    else g.von = grenze.rechts + 1;
+  }
   return Math.max(g.von, Math.min(g.bis, int(spalte)));
 }
 
@@ -300,13 +347,13 @@ export function aufstellen(f, spieler, istAngreifer, verteilung, raster) {
   const grenznah = z => {
     const g = f.grenzspalte[Math.max(0, Math.min(ZEILEN - 1, z))];
     return spalteEinpassen(istAngreifer ? g - FELDHERR_ABSTAND : g + FELDHERR_ABSTAND,
-                           istAngreifer);
+                           istAngreifer, f.z, z);
   };
 
   const platziere = (gattung, wunschZeile, wunschSpalte) => {
     const spalteZu = z => wunschSpalte == null
       ? grenznah(z)
-      : spalteEinpassen(wunschSpalte, istAngreifer);
+      : spalteEinpassen(wunschSpalte, istAngreifer, f.z, z);
     let z = Math.max(AUFSTELLUNG.ersteZeile,
                      Math.min(AUFSTELLUNG.letzteZeile, int(wunschZeile)));
     let versuche = 0;

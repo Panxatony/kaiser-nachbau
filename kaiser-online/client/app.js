@@ -1609,15 +1609,10 @@ function feldMalen() {
   const c = $('aufstellungsfeld');
   const ctx = c.getContext('2d');
   feldZeichnen(ctx, A.anzeigeFeld(aufstellung));
-  // Den erlaubten Bereich hervorheben. Im Original darf der Cursor vom
-  // Startplatz aus bis an den eigenen Rand und bis an die Grenze wandern.
+  // Kein Rahmen um den erlaubten Bereich mehr: er reicht wie im Original bis
+  // an die Grenze, und die laeuft in jeder Zeile anders. Die Grenze selbst
+  // zeigt, wie weit man darf.
   feldSchaerfe(c);
-  const g = A.spaltenbereich(aufstellung);
-  ctx.strokeStyle = FARBEN[7];
-  ctx.lineWidth = 1;
-  ctx.strokeRect(g.von * KACHEL - 0.5, A.AUFSTELLUNG.ersteZeile * KACHEL - 0.5,
-    (g.bis - g.von + 2) * KACHEL,
-    (A.AUFSTELLUNG.letzteZeile - A.AUFSTELLUNG.ersteZeile + 1) * KACHEL);
 }
 
 $('aufstellungsfeld').onclick = ev => {

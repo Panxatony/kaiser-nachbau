@@ -92,14 +92,32 @@ export function spalteAusKlick(klickX, links, breite, spalten = SPALTEN) {
   return c >= 0 && c < spalten ? c : -1;
 }
 
-/** Der erlaubte Spaltenbereich der eigenen Seite. */
-export function spaltenbereich(z) {
-  return AUFSTELLUNG[z.istAngreifer ? 'angreifer' : 'verteidiger'];
+/**
+ * Der erlaubte Spaltenbereich der eigenen Seite.
+ *
+ * Mit Zeile gilt die Regel des Originals, dieselbe Rechnung wie in
+ * server/battle.js: der Angreifer darf bis zwei Spalten vor das linke
+ * Grenzzeichen dieser Zeile, der Verteidiger bis eine Spalte hinter das
+ * rechte (BASIC-Zeile 370 und 385, SYSm,33 erkennt 128, 240, 247, 248, 251).
+ */
+const GRENZZEICHEN = [128, 240, 247, 248, 251];
+export function spaltenbereich(z, zeile = null) {
+  const g = { ...AUFSTELLUNG[z.istAngreifer ? 'angreifer' : 'verteidiger'] };
+  if (zeile == null || !z.grund || zeile < 0 || zeile >= ZEILEN) return g;
+  let links = -1, rechts = -1;
+  for (let c = 15; c <= 25; c++) {
+    if (!GRENZZEICHEN.includes(z.grund[zeile * SPALTEN + c])) continue;
+    if (links < 0) links = c;
+    rechts = c;
+  }
+  if (links < 0) return g;
+  if (z.istAngreifer) g.bis = links - 2; else g.von = rechts + 1;
+  return g;
 }
 
 /** Passt eine Spalte in den erlaubten Bereich ein. */
-export function spalteEinpassen(z, spalte) {
-  const g = spaltenbereich(z);
+export function spalteEinpassen(z, spalte, zeile = null) {
+  const g = spaltenbereich(z, zeile);
   return Math.max(g.von, Math.min(g.bis, Math.trunc(spalte)));
 }
 
@@ -114,13 +132,13 @@ export function feldherrSpalte(z, zeile) {
   if (!z.grenzspalte) return z.spalte;
   const g = z.grenzspalte[Math.max(0, Math.min(ZEILEN - 1, zeile))];
   if (g == null) return z.spalte;
-  return spalteEinpassen(z, z.istAngreifer ? g - FELDHERR_ABSTAND : g + FELDHERR_ABSTAND);
+  return spalteEinpassen(z, z.istAngreifer ? g - FELDHERR_ABSTAND : g + FELDHERR_ABSTAND, zeile);
 }
 
 /** Ist das Feldpaar an dieser Stelle frei, Gelaende wie eigene Einheiten? */
 export function feldFrei(z, zeile, spalte) {
   if (zeile < AUFSTELLUNG.ersteZeile || zeile > AUFSTELLUNG.letzteZeile) return false;
-  const g = spaltenbereich(z);
+  const g = spaltenbereich(z, zeile);
   if (spalte < g.von || spalte > g.bis) return false;
   const i = zeile * SPALTEN + spalte;
   if (z.grund[i] !== 32 || z.grund[i + 1] !== 32) return false;
@@ -141,7 +159,7 @@ export function feldFrei(z, zeile, spalte) {
  */
 export function klick(z, zeile, spalte) {
   if (zeile < 0 || zeile >= ZEILEN) return { geaendert: false };
-  const c = spalteEinpassen(z, spalte == null ? z.spalte : spalte);
+  const c = spalteEinpassen(z, spalte == null ? z.spalte : spalte, zeile);
   if (z.abgegeben) return { geaendert: false, fehler: 'Sie haben die Aufstellung abgegeben.' };
   if (z.amZug !== 'ich') {
     return { geaendert: false, fehler: z.amZug ? 'Der Gegner ist am Zug.' : 'Es steht schon alles.' };
