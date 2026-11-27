@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Spiel, PHASEN, HALTUNG } from '../server/game.js';
+import { Spiel, PHASEN, HALTUNG, liegenAneinander } from '../server/game.js';
+import { NACHBARN } from '../server/data.js';
 import * as R from '../server/rules.js';
 
 function spielMit(n, optionen = {}) {
@@ -189,4 +190,81 @@ test('Sicht enthaelt keine fremden Rundendaten', () => {
   assert.equal(sicht.ich.id, 'p0');
   assert.ok(sicht.spieler.every(s => s.kasse !== undefined), 'Oeffentliche Werte sind sichtbar');
   assert.equal(sicht.spieler.find(s => s.id === 'p1').korn, undefined, 'Fremde Kornreserve bleibt geheim');
+});
+
+// --------------------------------------------- Verlosung der Fuerstentuemer
+
+function verlosung(seed, namen, fest = {}) {
+  const spiel = new Spiel({ id: 'los', seed, planungsSekunden: 0, diplomatieSekunden: 0 });
+  for (const n of namen) spiel.beitreten({ id: n, name: n, weiblich: false, region: fest[n] });
+  spiel.starten();
+  return spiel;
+}
+
+test('Verlosung: derselbe Startwert ergibt dieselbe Zuteilung', () => {
+  const a = verlosung(4711, ['A', 'B', 'C']).spieler.map(s => s.region);
+  const b = verlosung(4711, ['A', 'B', 'C']).spieler.map(s => s.region);
+  assert.deepEqual(a, b);
+});
+
+test('Verlosung: gezogen wird aus allen neun, nicht aus den ersten N', () => {
+  const gesehen = new Set();
+  const paare = new Set();
+  for (let seed = 1; seed <= 200; seed++) {
+    const r = verlosung(seed, ['A', 'B']).spieler.map(s => s.region);
+    assert.notEqual(r[0], r[1]);
+    r.forEach(x => gesehen.add(x));
+    paare.add(r.join('-'));
+  }
+  assert.equal(gesehen.size, 9, 'jedes Fuerstentum kommt vor');
+  assert.ok(paare.size > 10, 'eine Zweierrunde ist nicht immer Preussen gegen Hessen');
+});
+
+test('Verlosung: eine vorgegebene Region steht fest und wird nicht doppelt vergeben', () => {
+  for (let seed = 1; seed <= 50; seed++) {
+    const spiel = verlosung(seed, ['A', 'B', 'C'], { B: 4 });
+    assert.equal(spiel.spielerVon('B').region, 4);
+    assert.equal(new Set(spiel.spieler.map(s => s.region)).size, 3);
+  }
+});
+
+test('Verlosung: vor dem Start zeigt die Sicht kein Fuerstentum', () => {
+  const spiel = new Spiel({ id: 'los', seed: 5, planungsSekunden: 0, diplomatieSekunden: 0 });
+  spiel.beitreten({ id: 'A', name: 'A', weiblich: false });
+  const vorher = spiel.oeffentlicherStand(spiel.spielerVon('A'));
+  assert.equal(vorher.region, null);
+  assert.equal(vorher.regionIndex, null);
+  assert.doesNotMatch(vorher.anrede, / VON /);
+  spiel.starten();
+  const nachher = spiel.oeffentlicherStand(spiel.spielerVon('A'));
+  assert.equal(typeof nachher.region, 'string');
+  assert.match(nachher.anrede, / VON /);
+});
+
+test('Verlosung: die Laender der Spieler liegen immer aneinander', () => {
+  const namen = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+  for (let zahl = 2; zahl <= 9; zahl++) {
+    for (let seed = 1; seed <= 150; seed++) {
+      const r = verlosung(seed, namen.slice(0, zahl)).spieler.map(s => s.region);
+      assert.ok(liegenAneinander(r), `${zahl} Spieler, Startwert ${seed}: ${r}`);
+    }
+  }
+});
+
+test('Verlosung: zu zweit sind es immer zwei Nachbarn, die einander direkt angreifen koennen', () => {
+  for (let seed = 1; seed <= 300; seed++) {
+    const [a, b] = verlosung(seed, ['A', 'B']).spieler.map(s => s.region);
+    assert.ok(NACHBARN[a].includes(b) && NACHBARN[b].includes(a), `${a} und ${b}`);
+  }
+});
+
+test('liegenAneinander erkennt getrennte Laender', () => {
+  // Zwei Laender ohne gemeinsame Grenze suchen und pruefen
+  let getrennt = null;
+  for (let a = 0; a < 9 && !getrennt; a++)
+    for (let b = a + 1; b < 9; b++)
+      if (!NACHBARN[a].includes(b) && !NACHBARN[b].includes(a)) { getrennt = [a, b]; break; }
+  assert.ok(getrennt, 'es gibt solche Paare');
+  assert.equal(liegenAneinander(getrennt), false);
+  assert.equal(liegenAneinander([0, 1, 2, 3, 4, 5, 6, 7, 8]), true, 'das ganze Reich haengt zusammen');
 });

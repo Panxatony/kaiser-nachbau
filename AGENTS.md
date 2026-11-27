@@ -7,7 +7,7 @@ Standardabläufe und die Fehler, die hier schon gemacht wurden.
 **Ansprechpartner:** Lars „Panxatony" Vonhof-Hunold (Urheber, Betreiber,
 Entscheider in allen Fragen von Regeln, Sichtbarkeit und Betrieb).
 
-**Stand:** 01.11.2026
+**Stand:** 27.11.2026
 
 Die Angaben dieser einen Installation — Rechnernamen, Adressen, Pfade,
 Mailkonto — stehen **nicht hier**, sondern in `AGENTS.lokal.md` daneben. Diese
@@ -164,7 +164,7 @@ Netbird-Adressen und Ansible-Pfade.
 
 ```bash
 cd kaiser-online
-npm test            # 193 Tests, laufen ohne Originalmaterial
+npm test            # 202 Tests, laufen ohne Originalmaterial
 npm start           # http://localhost:8420
 ```
 
@@ -283,21 +283,20 @@ Noch nicht beauftragt, nur festgehalten.
   Konten, Spielstände und die Ruhmeshalle enthalten; Kennwörter wären
   unwiederbringlich, denn sie liegen nur als Streuwert vor. `BETRIEB.md` sagt
   „ein Backup dieses einen Ordners genügt" — eingerichtet ist es nicht.
-* **Drei Work Items im GitLab sind offen und ungebaut** (Stand 01.11.2026):
-  * **#1** Fürstentümer erst beim Start vergeben, nicht nach
-    Beitrittsreihenfolge.
-  * **#3** Spielslots sollen sich löschen lassen — die kleinste Arbeit, räumt
-    die Lobby auf.
-  * **#4** ein Wetter und eine Fäule für das ganze Reich, mit einem
-    veränderlichen Anteil. Die Messungen liegen fertig vor und empfehlen **ein
-    Drittel eigenen Anteil**: der Titelabstand zweier gleich spielender Fürsten
-    fällt von 3,12 auf 1,30 Stufen, und die Runden, in denen einer abgehängt
-    wird, von 51 auf 2 Prozent. Bei reinem Reichswetter wären es noch 32
-    Prozent — ein bisschen eigene Streuung hält den Motor an. Als Schalter
-    `wetterStreuung` (0 wäre reines Reichswetter, 1 das heutige Verhalten);
-    bei genau einem Drittel entsteht kein Rundungsfehler, bei einem Viertel und
-    der Hälfte schon, und der würde das ganze Spiel heimlich erleichtern.
-  * Von den dreien hat **#4** den größten Hebel für die Fairness.
+* **Ein Work Item im GitLab ist offen und ungebaut** (Stand 27.11.2026):
+  **#3** Spielslots sollen sich löschen lassen. #1 (Verlosung der
+  Fürstentümer) und #4 (Wetter im Reich) sind gebaut, aber noch nicht
+  ausgerollt und vom Betreiber nicht geschlossen.
+* **Startwerte des unbearbeiteten Originals ungeklärt.** Korn und Einwohner
+  hängen im BASIC an einem Schalter des Bearbeiters (Speicherstelle 767,
+  Zeile 800 und 801): 10.000 Maß und 2.000 Einwohner, oder 0 Maß und 1.000.
+  Der Nachbau nimmt die ersten, wie das Abbild im Emulator. Klären ließe es
+  sich nur an einer unbearbeiteten Diskette. Siehe `SPIELMECHANIK.md`,
+  Abschnitt 2.
+* **Die Zeitstrafe des Originals fehlt mit Absicht** (Zeile 609 und 610: wer
+  für seinen Zug 80 Sekunden braucht, verliert ein bis drei Lebensjahre).
+  An ihrer Stelle stehen die Fristen der Phasen. Ob sie als Regel
+  zurückkommen soll, ist nicht entschieden.
 * **Der Spielserver trägt Reste alter Ausrollungen** (`README.md`,
   `ARCHITEKTUR.md`, `test/`, `werkzeuge/` in `/opt/kaiser`). Sie stören nicht,
   gehören aber nicht dorthin.

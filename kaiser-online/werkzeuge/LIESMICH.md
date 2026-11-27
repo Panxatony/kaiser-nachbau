@@ -14,6 +14,8 @@ Runden werden über ihren **Namen** angesprochen, nicht über eine Kennung.
 | Datei | Zweck |
 |-------|-------|
 | `sim.mjs` | Langzeitsimulation ohne Server. Spielt einen Fürsten mit vorsichtiger Strategie bis zum Kaiser und zeigt jeden Titelaufstieg. Prüft, ob das Spiel gewinnbar bleibt. |
+| `wettermessung.mjs` | Ohne Server. Lässt zwei Fürsten mit derselben Strategie fünfzig Jahre spielen und misst, wie weit sie auseinanderlaufen — je nachdem, wie viel vom Wetter jeder für sich würfelt. Grundlage für Regel 8 der Fassung 2026. |
+| `schlachtmessung.mjs` | Ohne Server. Schlägt einige hundert Schlachten zwischen gleich starken Fürsten und nennt Landgewinn, Verluste und Gebäudeschäden. Vorher-Nachher-Probe für jede Änderung an Schlachtfeld oder Kampf. |
 | `kriegsdemo.mjs` | Legt eine Demorunde mit drei Spielern an, baut sie bis zum Titel Baron auf und führt dann Krieg. Danach lässt sich der Jahresbericht samt Schlachtfeld im Browser ansehen. |
 | `verbindung.mjs` | Gemeinsame Hilfe: anmelden, Lobby holen, Runde anlegen oder betreten. |
 | `peek.mjs` | Ohne Argument die Lobby, mit Rundennamen der Stand dieser Runde. |

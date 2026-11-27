@@ -61,7 +61,7 @@ test('Die Einladung ist im Ton des 17. Jahrhunderts gehalten', () => {
   assert.match(b.text, /göttliche Aufgabe/);
   assert.match(b.text, /Cron des Kaisers/);
   assert.match(b.text, /muster-kenn-1234/);
-  assert.match(b.text, /https:\/\/kaiser\.example\.org/);
+  assert.ok(b.text.includes('https://kaiser.example.org'));
   assert.match(b.text, /Ausgefertiget zu Händen durch LARS/);
   // Die HTML-Fassung trägt dasselbe
   assert.match(b.html, /muster-kenn-1234/);

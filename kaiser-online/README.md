@@ -41,8 +41,9 @@ zum Beispiel `http://192.168.1.20:8420`.
    Sie anderswo benutzen.
 2. **Spielslot wählen.** In der Lobby stehen alle Runden mit ihren Plätzen.
    Dort können Sie eine neue Runde eröffnen oder einer offenen beitreten. Das
-   Fürstentum wird nicht gewählt, sondern nach der Sitzreihenfolge vergeben,
-   wie im Original: der erste Spieler regiert Preussen, der zweite Hessen.
+   Fürstentum wird nicht gewählt, sondern beim Start der Runde verlost. Das
+   Original vergab es nach der Sitzreihenfolge, die der Tisch unter sich
+   ausmachte; hier entschiede sonst, wer zuerst beitritt.
    Der Platz gehört Ihrem Konto: Sie können den Browser schließen und später
    weiterspielen.
 3. **Starten.** Im Warteraum sehen alle, wer schon dabei ist. Jeder Teilnehmer
@@ -80,7 +81,7 @@ Protokoll bekommen es zu sehen.
 
 Der Brief ist im Ton des 17. Jahrhunderts gehalten und nennt bewusst **kein**
 bestimmtes Fürstentum: welche Region jemand bekommt, entscheidet sich erst
-beim Beitritt zu einer Runde, und zwar nach der Sitzreihenfolge.
+beim Start einer Runde, und zwar durch das Los.
 
 Solange das Kennwort aus der Einladung unverändert ist, sieht der Spieler in
 der Lobby einen Hinweis, es zu ändern. Dafür gibt es dort den Knopf

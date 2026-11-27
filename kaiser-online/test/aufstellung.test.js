@@ -85,9 +85,9 @@ test('Die staerkere Seite setzt ihren Ueberschuss zuerst', () => {
   k.einheitenV = [...k.einheitenV, 'infanterie', 'infanterie'];
   k.amZug = spiel.amZug(k);
   assert.equal(k.amZug, 'verteidiger', 'wer mehr hat, faengt an');
-  spiel.aktion('p1', 'aufstellungSetzen', { zeile: 1, spalte: 24 });
+  setze(spiel, 'p1', 24);
   assert.equal(k.amZug, 'verteidiger', 'und setzt weiter, bis es gleich steht');
-  spiel.aktion('p1', 'aufstellungSetzen', { zeile: 3, spalte: 24 });
+  setze(spiel, 'p1', 24);
   assert.equal(k.amZug, 'angreifer', 'erst dann kommt der andere');
 });
 
@@ -146,14 +146,13 @@ test('Ein Dritter darf nicht aufstellen', () => {
 
 test('Die gewaehlte Aufstellung landet auf dem Schlachtfeld', () => {
   const spiel = kriegslage();
-  spiel.aktion('p0', 'aufstellungSetzen', { zeile: 5, spalte: 16 });
-  spiel.aktion('p1', 'aufstellungSetzen', { zeile: 5, spalte: 24 });
+  const a = setze(spiel, 'p0', 16);
+  const v = setze(spiel, 'p1', 24);
   ['p0', 'p1', 'p2'].forEach(id => spiel.aktion(id, 'bereit'));
   const k = spiel.letzterBericht.kriege[0];
   assert.ok(k.startbild, 'Das Ausgangsbild wird mitgeliefert');
-  const zeile = k.startbild.slice(5 * B.SPALTEN, 6 * B.SPALTEN);
-  assert.equal(zeile[16], 227, 'Kavallerie des Angreifers in Zeile 5, Spalte 16');
-  assert.equal(zeile[24], 109, 'Kavallerie des Verteidigers in Zeile 5, Spalte 24');
+  assert.equal(k.startbild[a.zeile * B.SPALTEN + 16], 227, 'Kavallerie des Angreifers in Spalte 16');
+  assert.equal(k.startbild[v.zeile * B.SPALTEN + 24], 109, 'Kavallerie des Verteidigers in Spalte 24');
 });
 
 test('Die Aufzeichnung ergibt genau den Endzustand', () => {

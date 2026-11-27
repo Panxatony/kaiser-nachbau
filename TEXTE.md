@@ -92,6 +92,16 @@ Baukosten, Bestände.
   das nicht sieht, kann es auch nicht lernen. Warum die Fläche begrenzt ist,
   sagen wir weiterhin nicht — das bleibt zu entdecken.
 
+* **Die Verlosung der Fürstentümer.** Das Original vergibt sie nach der
+  Sitzreihenfolge (Zeile 869 bis 878); hier werden sie beim Start verlost, und zwar
+  so, dass die Länder der Spieler aneinander liegen. Das erste Jahr meldet es: „Das Los hat entschieden: Sie regieren …". Die
+  Abweichung betrifft den Tisch, nicht die Regeln, und gilt darum in beiden
+  Regelwerken.
+* **Das gemeinsame Wetter der Fassung 2026.** Angezeigt wird weiterhin nur das
+  eigene Wetter, wie im Original. Dass es im Reich fast überall dasselbe ist,
+  steht in der Beschreibung des Regelwerks bei der Wahl der Runde, nicht im
+  Spiel selbst.
+
 ### Offene Ermessensfragen
 
 * **„Taler je 1000 Maß“**: Das Original schreibt nur „Kornpreis 97 Taler“ und

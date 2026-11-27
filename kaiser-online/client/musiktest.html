@@ -48,7 +48,9 @@ import * as musik from './sid.js';
 
 // Mit ?datei=assets/kaiser_abspann.sid laesst sich das zweite Stueck pruefen.
 const PARAMETER = new URLSearchParams(location.search);
-const DATEI = PARAMETER.get('datei') || 'assets/kaiser_titel.sid';
+// Nur ein Stueck aus dem eigenen Ordner assets, keine fremde Adresse.
+const WUNSCH = PARAMETER.get('datei') || '';
+const DATEI = /^assets\/[\w-]+\.sid$/.test(WUNSCH) ? WUNSCH : 'assets/kaiser_titel.sid';
 // Die Titelmusik endet nach 2688 Play-Aufrufen (alle drei Stimmen summieren
 // sich genau auf 2688 Ticks); danach wird sie wiederholt.
 const NEUSTART = DATEI.indexOf('titel') >= 0 ? 2688 : -1;

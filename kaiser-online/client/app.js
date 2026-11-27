@@ -206,7 +206,7 @@ function lobbyAufbauen() {
     const h = $('regelHinweis');
     if (!h) return;
     h.innerHTML = $('nRegelwerk').value === 'neu'
-      ? 'Sieben Regeln sind geändert, damit Geld knapp bleibt und ein Krieg ein Wagnis ist: '
+      ? 'Acht Regeln sind geändert, damit Geld knapp bleibt und ein Krieg ein Wagnis ist: '
         + 'Zinsen gibt es nur noch auf Kapital bis zur Bonität, die Moral kehrt zur Mitte '
         + 'zurück statt gegen null zu fallen, Manöver bringen mit jedem weiteren im Jahr '
         + 'nur noch die Hälfte, der Verteidiger hat einen Heimvorteil, der Ausgang einer '
@@ -215,7 +215,9 @@ function lobbyAufbauen() {
         + 'durch Krieg den Besitzer. Beim Titelaufstieg zählen außerdem die Bauwerke zum '
         + 'Vermögen, solange die Kasse nicht im Minus steht &mdash; sonst bestraft die alte '
         + 'Geldhürde genau den, der sein Land aufbaut. Für die Kaiserwürde bleiben es '
-        + '100.000 Taler in bar. Die Moral selbst bleibt dabei so unsichtbar wie im '
+        + '100.000 Taler in bar. Und das Wetter ist im ganzen Reich dasselbe, ebenso '
+        + 'die Fäule im Kornspeicher; nur in einem von fünf Jahren liegt es bei einem '
+        + 'Fürsten eine Stufe daneben. Die Moral selbst bleibt dabei so unsichtbar wie im '
         + 'Original; nur ihre Regel ist eine andere.'
       : 'Die Regeln des C64-Spiels von 1984, Zeile für Zeile nachgebaut, mitsamt seinen '
         + 'Eigenheiten.';
@@ -288,7 +290,7 @@ function lobbyZeichnen() {
       : 'wartet auf Mitspieler';
     const regeln = r.regelwerkName || 'Original 1984';
     const plaetze = r.spieler.length
-      ? r.spieler.map(s => `<span class="platz${s.selbst ? ' selbst' : ''}">${esc(s.name)} <span class="klein">${esc(s.region)}</span></span>`).join('')
+      ? r.spieler.map(s => `<span class="platz${s.selbst ? ' selbst' : ''}">${esc(s.name)}${s.region ? ` <span class="klein">${esc(s.region)}</span>` : ''}</span>`).join('')
       : '<span class="klein">noch niemand</span>';
 
     let knoepfe = '';
@@ -296,9 +298,9 @@ function lobbyZeichnen() {
       knoepfe = `<button data-oeffnen="${esc(r.id)}" class="gut">${r.gestartet ? 'Weiterspielen' : 'Zum Warteraum'}</button>`;
       if (!r.gestartet) knoepfe += `<button data-verlassen="${esc(r.id)}" class="gefahr">Platz aufgeben</button>`;
     } else if (r.beitretbar) {
-      // Das Fuerstentum richtet sich nach der Sitzreihenfolge, wie im Original.
+      // Das Fuerstentum wird beim Start verlost; vorher steht nichts fest.
       knoepfe = `
-        <span class="klein">Sie regieren ${esc(r.naechsteRegion)}.</span>
+        <span class="klein">Das Fürstentum wird beim Start verlost.</span>
         <select data-anrede="${esc(r.id)}">
           <option value="m"${konto && !konto.weiblich ? ' selected' : ''}>männlich</option>
           <option value="w"${konto && konto.weiblich ? ' selected' : ''}>weiblich</option>
@@ -318,7 +320,7 @@ function lobbyZeichnen() {
       <div class="reihe">${knoepfe}</div>
       <div class="klein"><b>${esc(regeln)}.</b> Planung ${r.planungsSekunden ? r.planungsSekunden + ' s' : 'ohne Frist'},
         Diplomatie ${r.diplomatieSekunden ? r.diplomatieSekunden + ' s' : 'ohne Frist'}${
-        r.angelegtVon ? ', eröffnet von ' + r.angelegtVon : ''}${
+        r.angelegtVon ? ', eröffnet von ' + esc(r.angelegtVon) : ''}${
         r.angelegt ? ' am ' + datum(r.angelegt) : ''}</div>
     </div>`;
   }).join('');
@@ -366,7 +368,7 @@ function verwaltungZeichnen() {
       <td>${esc(k.name)}${k.admin ? ' <span class="rolle">Verwaltung</span>' : ''}${k.gesperrt ? ' <span class="klein">gesperrt</span>' : ''}</td>
       <td class="klein">${k.email ? esc(k.email) : '<span style="opacity:.5">keine Mail</span>'}${
         k.eingeladen ? '<br>eingeladen ' + datum(k.eingeladen) + (k.kennwortGeaendert ? '' : ', Zahl noch unverändert') : ''}</td>
-      <td class="klein">${datum(k.angelegt)}${k.angelegtVon ? '<br>von ' + k.angelegtVon : ''}</td>
+      <td class="klein">${datum(k.angelegt)}${k.angelegtVon ? '<br>von ' + esc(k.angelegtVon) : ''}</td>
       <td class="klein">${k.zuletzt ? datum(k.zuletzt) : 'nie'}</td>
       <td class="zahl">${k.sitzungen}</td>
       <td>${knoepfe.join('')}</td>
@@ -528,7 +530,7 @@ function warteraumZeichnen() {
   $('diploZeit').value = zustand.diplomatieSekunden ?? 120;
   const t = $('warteListe');
   t.innerHTML = '<tr><th>Spieler</th><th>Region</th></tr>' +
-    zustand.spieler.map(s => `<tr class="${s.selbst ? 'selbst' : ''}"><td>${esc(s.anrede)}</td><td>${esc(s.region)}</td></tr>`).join('');
+    zustand.spieler.map(s => `<tr class="${s.selbst ? 'selbst' : ''}"><td>${esc(s.anrede)}</td><td>${s.region ? esc(s.region) : '<span class="klein">wird beim Start verlost</span>'}</td></tr>`).join('');
 }
 
 function werteZeichnen() {
@@ -651,7 +653,7 @@ function planungZeichnen() {
   if (r.fertig) {
     schrittLeisteVerbergen();
     hilfeSchliessen();
-    const offen = zustand.spieler.filter(s => !s.fertig && !s.aussetzen && !s.tot).map(s => s.name);
+    const offen = zustand.spieler.filter(s => !s.fertig && !s.aussetzen && !s.tot).map(s => esc(s.name));
     ziel.innerHTML = `<p class="meldung gut">Ihr Zug ist beendet.</p>
       <p class="klein">${offen.length
         ? 'Es fehlen noch: ' + offen.join(', ') + '. Sobald alle fertig sind, geht es weiter, auch vor Ablauf der Zeit.'
@@ -728,7 +730,7 @@ function haupttaste(r) {
 function fussLeiste(g, r) {
   const zurueck = planungsSchritt > g.min;
   const weiter = planungsSchritt < g.max;
-  const offeneNamen = zustand.spieler.filter(s => !s.fertig && !s.aussetzen && !s.tot && !s.selbst).map(s => s.name);
+  const offeneNamen = zustand.spieler.filter(s => !s.fertig && !s.aussetzen && !s.tot && !s.selbst).map(s => esc(s.name));
   return `<div class="abschluss">
     <div class="reihe">
       ${zurueck ? '<button data-nav="-1">&lt; Zurück</button>' : ''}
@@ -966,7 +968,7 @@ function seiteMilitaer(r, i) {
 
 function seiteAbschluss(r, i) {
   const st = r.steuernEingezogen;
-  const gegner = zustand.spieler.filter(s => !s.selbst && !s.fertig && !s.aussetzen && !s.tot).map(s => s.name);
+  const gegner = zustand.spieler.filter(s => !s.selbst && !s.fertig && !s.aussetzen && !s.tot).map(s => esc(s.name));
   const ziel = r.krieg ? zustand.spieler.find(s => s.id === r.krieg.ziel) : null;
   return `<h3>Das Jahr ${zustand.jahr} ist geplant</h3>
     <div class="tabellenhuelle"><table>
@@ -1121,7 +1123,7 @@ function diplomatieZeichnen() {
 
   const selbstImKrieg = zustand.kriege.some(k => k.beteiligt);
   if (r.diplomatieFertig) {
-    const offen = zustand.spieler.filter(p => !p.diplomatieFertig).map(p => p.name);
+    const offen = zustand.spieler.filter(p => !p.diplomatieFertig).map(p => esc(p.name));
     h += `<p class="meldung gut">Ihre Entscheidung steht.</p>
       <p class="klein">${offen.length ? 'Es fehlen noch: ' + offen.join(', ') : 'Die Schlacht wird ausgetragen.'}</p>`;
   } else {
@@ -1645,7 +1647,7 @@ function berichtZeichnen() {
     const gewinner = k.landAngreifer > 0 ? k.angreifer : k.verteidiger;
     const land = Math.abs(k.landAngreifer);
     h += `<div class="meldung"><strong>${esc(k.angreifer)} gegen ${esc(k.verteidiger)}</strong><br>
-      Angriffsweg: ${k.pfad.join(' → ')}<br>
+      Angriffsweg: ${k.pfad.map(esc).join(' → ')}<br>
       ${land ? `${esc(gewinner)} gewinnt ${zahl(land)} Hektar.` : 'Keine Landverschiebung.'}<br>
       Verluste ${esc(k.angreifer)}: ${beschreibeVerluste(k.verluste[0])}<br>
       Verluste ${esc(k.verteidiger)}: ${beschreibeVerluste(k.verluste[1])}

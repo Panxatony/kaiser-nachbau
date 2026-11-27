@@ -101,7 +101,10 @@ export class Nachspieler {
     if (bild < this.bild) { this.feld = Uint8Array.from(this.original); this.bild = 0; }
     while (this.bild < bild) {
       const b = this.aufzeichnung[this.bild];
-      for (let i = 0; i < b.length; i += 2) this.feld[b[i]] = b[i + 1];
+      for (let i = 0; i < b.length; i += 2) {
+        const stelle = b[i] >>> 0;
+        if (stelle < this.feld.length) this.feld[stelle] = b[i + 1];
+      }
       this.bild++;
     }
     this.neuZeichnen();
@@ -113,7 +116,12 @@ export class Nachspieler {
     if (this.bild >= this.anzahl) return false;
     const b = this.aufzeichnung[this.bild];
     const geaendert = [];
-    for (let i = 0; i < b.length; i += 2) { this.feld[b[i]] = b[i + 1]; geaendert.push(b[i]); }
+    for (let i = 0; i < b.length; i += 2) {
+      const stelle = b[i] >>> 0;       // nur echte Feldstellen, nie ein Eigenschaftsname
+      if (stelle >= this.feld.length) continue;
+      this.feld[stelle] = b[i + 1];
+      geaendert.push(stelle);
+    }
     this.bild++;
     kachelnZeichnen(this.ctx, this.feld, geaendert, this.groesse);
     if (this.beiFortschritt) this.beiFortschritt(this.bild, this.anzahl);

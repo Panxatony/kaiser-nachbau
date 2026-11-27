@@ -21,6 +21,27 @@ export const HALTUNG = {
 
 let laufendeNummer = 0;
 
+/**
+ * Ob eine Menge von Fuerstentuemern zusammenhaengt: von jedem kommt man zu
+ * jedem, ohne die Menge zu verlassen. Als Grenze zaehlt nur, was in beide
+ * Richtungen ein direkter Angriffsweg ist; die zwei einseitigen Grenzen des
+ * Originals (Boehmen nach Maehren, Maehren nach Sachsen) zaehlen nicht.
+ */
+export function liegenAneinander(regionen) {
+  if (regionen.length < 2) return true;
+  const menge = new Set(regionen);
+  const grenze = (a, b) => NACHBARN[a].includes(b) && NACHBARN[b].includes(a);
+  const gesehen = new Set([regionen[0]]);
+  const offen = [regionen[0]];
+  while (offen.length) {
+    const a = offen.pop();
+    for (const b of menge) {
+      if (!gesehen.has(b) && grenze(a, b)) { gesehen.add(b); offen.push(b); }
+    }
+  }
+  return gesehen.size === menge.size;
+}
+
 export class Spiel {
   constructor(optionen = {}) {
     this.id = optionen.id || 'spiel-' + (++laufendeNummer);
@@ -67,11 +88,14 @@ export class Spiel {
   /**
    * Nimmt einen Spieler auf.
    *
-   * Das Fürstentum wird nicht gewählt, sondern vergeben: Wer zuerst am Tisch
-   * sitzt, regiert Preussen, der zweite Hessen und so fort. So macht es das
-   * Original in Zeile 869 bis 878, wo die Spielernummer zugleich das
-   * Fürstentum ist. Der Parameter `region` ist nur für Tests und Werkzeuge da,
-   * die eine bestimmte Nachbarschaft brauchen; die Lobby übergibt ihn nie.
+   * Das Fürstentum wird nicht gewählt und auch nicht nach der Reihenfolge am
+   * Tisch vergeben, sondern beim Start verlost, siehe fuerstentuemerVerlosen().
+   * Bis dahin haelt der Spieler nur einen Platz; die Region, die hier
+   * eingetragen wird, ist vorlaeufig und wird nach aussen nicht gezeigt.
+   *
+   * Der Parameter `region` ist für Tests und Werkzeuge da, die eine bestimmte
+   * Nachbarschaft brauchen; die Lobby übergibt ihn nie. Eine so vorgegebene
+   * Region steht fest und nimmt an der Verlosung nicht teil.
    */
   beitreten({ id, name, weiblich, region }) {
     if (this.gestartet) return { fehler: 'Das Spiel läuft bereits.' };
@@ -79,12 +103,14 @@ export class Spiel {
     name = String(name || '').trim().toUpperCase().slice(0, 14);
     if (!name) return { fehler: 'Bitte einen Namen angeben.' };
     if (this.spieler.some(s => s.name === name)) return { fehler: 'Diesen Namen gibt es schon.' };
-    if (region == null || this.spieler.some(s => s.region === region)) {
+    const vorgegeben = region != null && !this.spieler.some(s => s.region === region);
+    if (!vorgegeben) {
       const frei = this.offeneRegionen;
       if (!frei.length) return { fehler: 'Keine Region mehr frei.' };
       region = frei[0].index;
     }
     const s = R.neuerSpieler(id, name, !!weiblich, region);
+    if (vorgegeben) s.regionFest = true;
     R.armeeAktualisieren(s);
     this.spieler.push(s);
     return { spieler: s };
@@ -100,9 +126,62 @@ export class Spiel {
   starten() {
     if (this.gestartet) return { fehler: 'Läuft schon.' };
     if (!this.spieler.length) return { fehler: 'Keine Spieler.' };
+    // Vor der ersten Runde, denn an der Region haengen die Zufallsstroeme
+    // fuer Markt, Schlacht und Reichskarte.
+    this.fuerstentuemerVerlosen();
     this.gestartet = true;
     this.rundeVorbereiten();
+    for (const s of this.spieler) {
+      const z = this.zustand[s.id];
+      if (z && s.verlost) {
+        z.meldungen.push({ art: 'hinweis', text: `Das Los hat entschieden: Sie regieren ${REGIONEN[s.region]}.` });
+      }
+    }
     return { ok: true };
+  }
+
+  /**
+   * Verlost die Fuerstentuemer unter allen, die keines fest vorgegeben haben.
+   *
+   * Das Original kennt das nicht: in Zeile 869 bis 878 ist die Spielernummer
+   * zugleich das Fuerstentum, der erste regiert Preussen, der zweite Hessen.
+   * Vor dem C64 machte der Tisch die Reihenfolge unter sich aus. Hier
+   * entschiede sonst, wer zuerst auf den Knopf drueckt -- und die Lagen sind
+   * nicht gleichwertig: Preussen, Hessen, Bayern und Boehmen haben fuenf
+   * Nachbarn, Maehren, Tirol, die Pfalz und Flandern drei. Eine Zweierrunde
+   * waere ausserdem immer Preussen gegen Hessen.
+   *
+   * Gezogen wird aus allen neun Fuerstentuemern, nicht aus den ersten N, und
+   * aus dem Startwert der Runde, nicht aus Math.random: dieselbe Runde ergibt
+   * dieselbe Verlosung. Gilt in beiden Regelwerken, denn es betrifft den
+   * Tisch und nicht die Spielregeln.
+   *
+   * Die Laender der Spieler liegen dabei immer aneinander: jeder erreicht
+   * jeden ueber Laender, die ebenfalls einem Spieler gehoeren, siehe
+   * liegenAneinander(). Ohne das koennte eine Zweierrunde Tirol gegen
+   * Flandern heissen, und Krieg waere nur ueber herrenloses Land moeglich.
+   * Gezogen wird so lange neu, bis die Lage passt; jede zusammenhaengende
+   * Lage ist dabei gleich wahrscheinlich.
+   */
+  fuerstentuemerVerlosen() {
+    const lose = this.spieler.filter(s => !s.regionFest);
+    if (!lose.length) return;
+    const fest = this.spieler.filter(s => s.regionFest).map(s => s.region);
+    const frei = REGIONEN.map((_, i) => i).filter(i => !fest.includes(i));
+    const rnd = R.makeRng(this.seed + 4409);
+    let wahl = null;
+    for (let versuch = 0; versuch < 5000; versuch++) {
+      const topf = frei.slice();
+      for (let i = topf.length - 1; i > 0; i--) {        // Fisher-Yates
+        const j = Math.trunc(rnd() * (i + 1));
+        [topf[i], topf[j]] = [topf[j], topf[i]];
+      }
+      wahl = topf.slice(0, lose.length);
+      if (liegenAneinander([...fest, ...wahl])) break;
+      // Passt keine Lage (nur denkbar, wenn Tests Regionen weit auseinander
+      // vorgeben), bleibt die zuletzt gezogene stehen.
+    }
+    lose.forEach((s, i) => { s.region = wahl[i]; s.verlost = true; });
   }
 
   // ---------------------------------------------------------------- Phase A
@@ -112,6 +191,9 @@ export class Spiel {
     this.phase = PHASEN.PLANUNG;
     this.rundenNr++;
     this.zustand = {};
+    // Ein Wetter und eine Faeule fuer das ganze Reich. Gewuerfelt wird immer;
+    // ob es gilt, entscheidet das Regelwerk (wetterStreuung, faeuleImReich).
+    const reich = R.reichsJahr(R.makeRng(this.seed + this.rundenNr * 6151));
     for (const s of this.spieler) {
       const rnd = R.makeRng(this.seed + this.rundenNr * 1000 + s.region);
       const z = {
@@ -151,7 +233,7 @@ export class Spiel {
         // Die Steuerfaktoren (Zeile 543) und der Landmangel (Zeile 573)
         // kommen erst spaeter im Zug, nicht hier.
         R.armeeAktualisieren(s);
-        z.markt = R.ernte(s, rnd, this.regeln);
+        z.markt = R.ernte(s, rnd, this.regeln, reich);
         z.markt.gekauft = 0;
         z.steuerFaktoren = R.steuerFaktoren(s, rnd);   // Vorschau, bis die echten kommen
         z.preise = R.truppenPreise(rnd);
@@ -903,9 +985,14 @@ export class Spiel {
   // ---------------------------------------------------------------- Sicht
 
   oeffentlicherStand(s) {
+    // Vor dem Start ist das Fuerstentum noch nicht verlost. Die vorlaeufige
+    // Region bleibt deshalb drinnen; nur eine fest vorgegebene wird gezeigt.
+    const offen = !this.gestartet && !s.regionFest;
     return {
-      id: s.id, name: s.name, region: REGIONEN[s.region], regionIndex: s.region,
-      titel: R.titelName(s), titelStufe: s.titel, anrede: R.anrede(s),
+      id: s.id, name: s.name,
+      region: offen ? null : REGIONEN[s.region], regionIndex: offen ? null : s.region,
+      titel: R.titelName(s), titelStufe: s.titel,
+      anrede: offen ? `${R.titelName(s)} ${s.name}` : R.anrede(s),
       punkte: s.punkte, soldaten: s.soldaten, land: s.land, kasse: s.kasse,
       einwohner: s.einwohner, kaiser: s.kaiser,
       tot: !!s.tot, gestorbenIn: s.gestorbenIn || null

@@ -10,6 +10,55 @@ sechzig Jahren spielt. Wo eine Regel vom Original abweicht, steht es dabei.
 
 ## [Unveröffentlicht]
 
+### Regeln
+
+- **Fassung 2026, achte Änderung: ein Wetter für das ganze Reich.** Im
+  Original würfelt jeder Fürst Wetter und Fäule für sich (Zeile 466 und 470).
+  Jetzt gilt beides im ganzen Reich; in einem von fünf Jahren liegt das
+  Wetter eines Fürsten eine Stufe daneben. *Grund:* zwei Fürsten mit
+  derselben Strategie lagen nach 50 Jahren im Mittel 3,2 Titelstufen
+  auseinander, jetzt 1,5; Runden mit vier oder mehr Stufen Abstand fallen von
+  43 auf 12 Prozent. Der mittlere Titel bleibt gleich (5,9 und 5,7) — das
+  Spiel wird gerechter, nicht leichter. Nachzumessen mit
+  `werkzeuge/wettermessung.mjs`. *Original 1984* bleibt unberührt.
+- **Die Fürstentümer werden beim Start verlost**, nicht mehr nach der
+  Reihenfolge des Beitritts vergeben — aus allen neun und aus dem Startwert
+  der Runde. Die Länder der Spieler liegen dabei immer aneinander; zu zweit
+  sind es stets zwei Nachbarn, die einander direkt angreifen können. Weicht vom Original ab, das nach Sitzreihenfolge vergibt (Zeile
+  869 bis 878), und gilt in beiden Regelwerken. *Grund:* die Lagen sind nicht
+  gleichwertig (fünf Nachbarn oder drei), und eine Zweierrunde war immer
+  Preussen gegen Hessen. Laufende Runden behalten ihre Länder.
+
+- **Das Schlachtfeld folgt jetzt dem Original** (BASIC-Zeile 404 bis 423), in
+  beiden Regelwerken. Der Nachbau hatte es vereinfacht:
+  - Jede **Hauptstadt ist ummauert**. Die Linie zur Grenze lässt sich
+    durchbrechen (und verdoppelt dabei die Stoßkraft), Ecken und Längsseiten
+    nicht. Bisher lief man ungehindert bis an Palast und Kathedrale.
+  - In der Stadt stehen **Märkte, auch wenn der Fürst keine besitzt**; die
+    übrigen Märkte und die Mühlen liegen in festen Spalten am eigenen Rand.
+  - Der Palast hat vier Zeichen statt zwei, und die Bauten des Verteidigers
+    stehen zwei Spalten weiter rechts.
+  - Wer einen Zweikampf gewinnt, rückt noch ein Feld vor, bevor seine
+    Stoßkraft geprüft wird. Artillerie hinterlässt Krater und räumt Bäume weg;
+    von der Mauer sprengt sie nur die Linie, nicht die Ecken.
+  - Trifft die Artillerie des Verteidigers Kavallerie oder Artillerie, kostet
+    das den Angreifer keine Moral — eine Unsymmetrie des Originals (Zeile 200
+    gegen 248).
+
+  *Gemessen* an 400 Schlachten gleich starker Heere: das Kräfteverhältnis
+  bleibt (Angreifer verliert im Mittel 2.362 statt 2.431 Hektar), aber der
+  Schaden verlagert sich — 1,37 statt 1,95 zerstörte Märkte, 0,26 statt 0,18
+  Palastteile. Nachzumessen mit `werkzeuge/schlachtmessung.mjs`.
+
+### Behoben
+
+- **Spielernamen standen an sechs Stellen ohne Maskierung im HTML** (aus 18
+  Meldungen von CodeQL). Ausnutzbar war es nicht, weil der Server Namen nur
+  aus Buchstaben, Ziffern, Leerzeichen, Punkt und Bindestrich zulässt — aber
+  nur diese eine Prüfung stand dazwischen. Jetzt maskiert der Client überall
+  selbst. Außerdem schreibt die Aufzeichnung der Schlacht nur noch auf echte
+  Feldstellen, und die Prüfseiten laden keine Adresse aus der Abfragezeile.
+
 ### Werkzeuge und Betrieb
 
 - `AGENTS.md`: was man wissen muss, bevor man hier etwas ändert oder

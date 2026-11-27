@@ -270,3 +270,47 @@ test('Ein Aufsteiger ohne Besitz bleibt an der hoeheren Stufe haengen', () => {
   s.kasse = 20000;
   assert.equal(R.titelPruefen(s, REGELWERKE.neu), 3, 'damit geht es');
 });
+
+// ------------------------------------------------- Regel 8: Wetter im Reich
+
+const ernteBasis = () => ({ land: 15000, einwohner: 2000, muehlen: 0, korn: 20000, punkte: 0, handel: 0, wohlstand: 0, soldaten: 20 });
+
+test('Original: jeder Fuerst hat sein eigenes Wetter, das Reich zaehlt nicht', () => {
+  const reich = { wetter: 5, verfault: 1 };
+  for (let saat = 1; saat <= 40; saat++) {
+    const a = R.ernte(ernteBasis(), R.makeRng(saat), REGELWERKE.original, reich);
+    const b = R.ernte(ernteBasis(), R.makeRng(saat), REGELWERKE.original);
+    assert.deepEqual(a, b, 'mit und ohne Reich dasselbe Ergebnis');
+  }
+});
+
+test('Fassung 2026: das Wetter weicht hoechstens eine Stufe vom Reich ab', () => {
+  for (let reich = 1; reich <= 5; reich++) {
+    for (let k = 0; k < 1000; k++) {
+      const w = R.wetterImReich(reich, k / 1000, 0.2);
+      assert.ok(w >= 1 && w <= 5);
+      assert.ok(Math.abs(w - reich) <= 1);
+    }
+  }
+});
+
+test('Fassung 2026: die Abweichung laesst die Wetterverteilung, wie sie ist', () => {
+  // Das ist die Gegenprobe gegen eine heimliche Erleichterung: jede Stufe
+  // muss weiterhin in einem Fuenftel der Faelle vorkommen.
+  const zahl = [0, 0, 0, 0, 0, 0];
+  const N = 1000;
+  for (let reich = 1; reich <= 5; reich++)
+    for (let k = 0; k < N; k++) zahl[R.wetterImReich(reich, (k + 0.5) / N, 0.2)]++;
+  for (let w = 1; w <= 5; w++) assert.equal(zahl[w], N, `Wetter ${w}`);
+});
+
+test('Fassung 2026: die Faeule ist im ganzen Reich dieselbe', () => {
+  const reich = { wetter: 3, verfault: 17 };
+  for (let saat = 1; saat <= 20; saat++) {
+    assert.equal(R.ernte(ernteBasis(), R.makeRng(saat), REGELWERKE.neu, reich).verfault, 17);
+  }
+});
+
+test('Fassung 2026: ohne Abweichung haben alle dasselbe Wetter', () => {
+  for (let k = 0; k < 100; k++) assert.equal(R.wetterImReich(4, k / 100, 0), 4);
+});

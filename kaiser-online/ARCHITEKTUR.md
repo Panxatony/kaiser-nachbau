@@ -113,12 +113,24 @@ man:
 - eine Runde, in der man einen Platz hat, **öffnen** oder den Platz **aufgeben**,
 - zwischen Runde und Lobby hin und her wechseln, ohne den Platz zu verlieren.
 
-Das **Fürstentum wird nicht gewählt, sondern vergeben**. Wer zuerst am Tisch
-sitzt, regiert Preussen, der zweite Hessen und so fort. Im Original ist die
-Spielernummer zugleich das Fürstentum (Zeile 869 bis 878), und die Lobby hält
-sich daran. Das ist keine Kosmetik: die Region bestimmt, wer Nachbar ist und
-welche Wege ein Heer nehmen muss. Wird ein Platz frei, fällt er dem nächsten
-Beitretenden zu.
+Das **Fürstentum wird nicht gewählt, sondern beim Start verlost**
+(`fuerstentuemerVerlosen()` in `server/game.js`). Im Original ist die
+Spielernummer zugleich das Fürstentum (Zeile 869 bis 878): der erste regiert
+Preussen, der zweite Hessen. Vor dem C64 machte der Tisch die Reihenfolge
+unter sich aus; hier entschiede sonst, wer zuerst auf den Knopf drückt. Das
+ist keine Kosmetik: die Region bestimmt, wer Nachbar ist und welche Wege ein
+Heer nehmen muss, und die Lagen sind nicht gleichwertig — Preussen, Hessen,
+Bayern und Böhmen haben fünf Nachbarn, Mähren, Tirol, die Pfalz und Flandern
+drei.
+
+Gezogen wird aus allen neun Fürstentümern und aus dem Startwert der Runde,
+dieselbe Runde ergibt also dieselbe Verlosung. **Die Länder der Spieler liegen
+dabei immer aneinander:** jeder erreicht jeden über Länder, die ebenfalls
+einem Spieler gehören (`liegenAneinander()`). Als Grenze zählt nur, was in
+beide Richtungen ein direkter Angriffsweg ist. Zu zweit sind es also immer
+zwei Nachbarn, eines von 17 Paaren. Bis zum Start hält ein Spieler
+nur einen Platz, und die Sicht nennt ihm kein Land. Das gilt in beiden
+Regelwerken, denn es betrifft den Tisch und nicht die Spielregeln.
 
 Der Platz gehört dem Konto, nicht der Verbindung. Wer den Browser schließt,
 bleibt in der Runde. Eine Runde, die niemand mehr belegt, wird entfernt.
@@ -205,7 +217,7 @@ Beim Eröffnen einer Runde wählt man zwischen **Original 1984** und
 
 *Original 1984* ist der Nachbau, Zeile für Zeile aus dem BASIC.
 
-*Fassung 2026* ändert sieben Stellen, an denen Messungen gezeigt haben, dass das
+*Fassung 2026* ändert acht Stellen, an denen Messungen gezeigt haben, dass das
 Spiel seine Spannung verliert. Jede Änderung steht in `server/regelwerk.js` mit
 dem Befund, der zu ihr geführt hat:
 
@@ -218,6 +230,7 @@ dem Befund, der zu ihr geführt hat:
 | Schlachtausgang streut und kostet auch den Sieger | 12 gegen 20 Einheiten verliert 59 von 60, 32 gegen 20 gewinnt 60 von 60 |
 | Das Reich hat 30.000 Hektar je Fürstentum | Land entsteht aus dem Nichts, deshalb ist Krieg nie nötig |
 | Beim Titel zählen die Bauwerke zum Vermögen | die Hürde von 9.999 Talern (Zeile 740) bremste einen Aufbauer in 16 von 60 Jahren, einen Sparer nie |
+| Ein Wetter und eine Fäule für das ganze Reich, in einem von fünf Jahren eine Stufe Abweichung | jeder würfelt für sich (Zeile 466 und 470); zwei gleich spielende Fürsten liegen nach 50 Jahren 3,2 Titelstufen auseinander |
 
 Die Bauwerke werden dabei mit den Beträgen bewertet, die das Original beim
 Bankrott dafür erlöst (Zeile 728 bis 731): 2.500 je Kathedralenteil, 1.500 je
@@ -225,7 +238,7 @@ Palastteil, 1.000 je Mühle, 500 je Markt. Die Kasse muss trotzdem über null
 stehen, und der letzte Schritt zur Kaiserwürde verlangt weiterhin 100.000
 Taler in bar (Zeile 743).
 
-Alles andere ist in beiden Fassungen gleich: Wetter, Ernte, Kornkreislauf,
+Alles andere ist in beiden Fassungen gleich: Ernte, Kornkreislauf,
 Bevölkerung, die zwölf Kennzahlen des Titelaufstiegs und das gemeinsame
 Todesjahr.
 

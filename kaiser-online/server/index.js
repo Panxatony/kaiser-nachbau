@@ -258,7 +258,7 @@ function behandeln(ws, v, n) {
     const b = lobby.beitreten(e.spiel.id, v.konto, { weiblich: n.weiblich });
     if (b.fehler) { senden(ws, 'fehler', { text: b.fehler }); lobbyVerteilen(); return; }
     konten.anredeMerken(v.konto.name, n.weiblich);
-    senden(ws, 'hinweis', { text: `Sie regieren ${b.region}.` });
+    senden(ws, 'hinweis', { text: 'Ihr Fürstentum wird beim Start verlost.' });
     v.spielId = e.spiel.id;
     ansichtSenden(ws, v);
     lobbyVerteilen();
@@ -268,7 +268,7 @@ function behandeln(ws, v, n) {
     const e = lobby.beitreten(n.spielId, v.konto, { weiblich: n.weiblich });
     if (e.fehler) { senden(ws, 'fehler', { text: e.fehler }); lobbyVerteilen(); return; }
     if (n.weiblich != null) konten.anredeMerken(v.konto.name, n.weiblich);
-    senden(ws, 'hinweis', { text: `Sie regieren ${e.region}.` });
+    senden(ws, 'hinweis', { text: 'Ihr Fürstentum wird beim Start verlost.' });
     v.spielId = e.spiel.id;
     ansichtSenden(ws, v);
     // Wer schon im Warteraum sitzt, soll den neuen Mitspieler sehen

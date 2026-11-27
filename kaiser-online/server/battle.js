@@ -88,44 +88,85 @@ export function feldAufbauen(angreifer, verteidiger, rnd) {
     x += i;
   }
 
-  const seiten = [
-    { s: angreifer, versatz: VERSATZ, spalte: 0 },
-    { s: verteidiger, versatz: 0, spalte: 35 }
-  ];
-  for (const { s, versatz, spalte } of seiten) {
-    // Hauptstadt, Zeile 405-407
-    const zeile = int(rnd() * 67) + 4;
-    const stadt = 'HAUPT', stadt2 = 'STADT';
-    for (let i = 0; i < 5; i++) {
-      setz(f, zeile, spalte + i, stadt.charCodeAt(i) - 64);
-      setz(f, zeile + 1, spalte + i, stadt2.charCodeAt(i) - 64);
-    }
-    // Palast und Kathedrale, Zeile 408-412
-    if (s.palast > 4)  { setz(f, zeile - 1, spalte, 60 + versatz); setz(f, zeile - 2, spalte, 34 + versatz); }
-    if (s.palast > 10) { setz(f, zeile - 1, spalte + 2, 62 + versatz); setz(f, zeile - 2, spalte + 2, 36 + versatz); }
-    if (s.kathedrale > 0)  { setz(f, zeile + 3, spalte, 37 + versatz); setz(f, zeile + 2, spalte, 42 + versatz); }
-    if (s.kathedrale > 5)  { setz(f, zeile + 3, spalte + 1, 38 + versatz); setz(f, zeile + 2, spalte + 1, 31 + versatz); }
-    if (s.kathedrale > 10) { setz(f, zeile + 3, spalte + 2, 39 + versatz); setz(f, zeile + 2, spalte + 2, 42 + versatz); }
+  // Zeile 404 bis 419, erst der Angreifer (fa=0, links), dann der Verteidiger
+  // (fa=1, rechts): Hauptstadt, Palast, Kathedrale, die Maerkte der Stadt und
+  // die Mauer darum. stadtMaerkte merkt sich, wie viele Maerkte schon in der
+  // Stadt stehen (ip und kp im Original).
+  const stadtMaerkte = [0, 0];
+  [angreifer, verteidiger].forEach((s, fa) => {
+    const ar = (1 - fa) * VERSATZ;          // Zeile 404: ar=(1-fa)*128
+    const zeile = int(rnd() * 67) + 4;      // Zeile 405
+    const spalte = fa ? 35 : 0;
+    // Zeile 405 bis 407. Das H traegt den Code 72, nicht 8: POKEx,72.
+    [72, 1, 21, 16, 20].forEach((code, i) => setz(f, zeile, spalte + i, code));
+    [19, 20, 1, 4, 20].forEach((code, i) => setz(f, zeile + 1, spalte + i, code));
 
-    // Maerkte und Muehlen im eigenen Gebiet, Zeile 420-423
-    const eigenesFeld = () => {
-      for (let versuch = 0; versuch < 400; versuch++) {
-        const r = int(rnd() * ZEILEN);
-        const g = f.grenzspalte[r];
-        const c = versatz ? int(rnd() * Math.max(1, g - 3)) : g + 3 + int(rnd() * Math.max(1, SPALTEN - g - 5));
-        if (lies(f, r, c) === LEER && lies(f, r, c + 1) === LEER) return [r, c];
-      }
-      return null;
-    };
+    // Palast und Kathedrale, Zeile 408 bis 412 und 92. Beim Verteidiger
+    // stehen sie zwei Spalten weiter rechts (das "+2*fa" im Original).
+    const c0 = spalte + 2 * fa;
+    if (s.palast > 4) {
+      setz(f, zeile - 1, c0, 60 + ar); setz(f, zeile - 1, c0 + 1, 61 + ar);
+      setz(f, zeile - 2, c0, 34 + ar); setz(f, zeile - 2, c0 + 1, 35 + ar);
+    }
+    if (s.palast > 10) { setz(f, zeile - 1, c0 + 2, 62 + ar); setz(f, zeile - 2, c0 + 2, 36 + ar); }
+    if (s.kathedrale > 0)  { setz(f, zeile + 3, c0, 37 + ar); setz(f, zeile + 2, c0, 42 + ar); }
+    if (s.kathedrale > 5)  { setz(f, zeile + 3, c0 + 1, 38 + ar); setz(f, zeile + 2, c0 + 1, 31 + ar); }
+    if (s.kathedrale > 10) { setz(f, zeile + 3, c0 + 2, 39 + ar); setz(f, zeile + 2, c0 + 2, 42 + ar); }
+
+    // Die Maerkte der Stadt, Zeile 413 bis 416 und 93: drei Versuche fuer
+    // einen grossen Markt, fuenfzehn fuer einen kleinen, rund um die
+    // Hauptstadt. Sie stehen dort, ganz gleich wie viele Maerkte der Fuerst
+    // besitzt; abgezogen werden sie erst in Zeile 422.
+    const inDerStadt = () => [zeile + int(rnd() * 8) - 3, spalte + int(rnd() * 7) - 3 * fa];
+    const beideFrei = (r, c) => lies(f, r, c) === LEER && lies(f, r, c + 1) === LEER;
+    for (let i = 0; i < 3; i++) {
+      const [r, c] = inDerStadt();
+      if (beideFrei(r, c)) { setz(f, r, c, 29 + ar); setz(f, r, c + 1, 30 + ar); stadtMaerkte[fa]++; }
+    }
+    for (let i = 0; i < 15; i++) {
+      const [r, c] = inDerStadt();
+      if (beideFrei(r, c)) { setz(f, r, c, 27 + ar); setz(f, r, c + 1, 28 + ar); stadtMaerkte[fa]++; }
+    }
+
+    // Die Mauer um die Hauptstadt, Zeile 417 bis 419. Oben und unten acht
+    // Zeichen 239, zur Grenze hin eine senkrechte Linie mit zwei Ecken. Die
+    // Linie laesst sich durchbrechen, die Ecken und die Laengsseiten nicht
+    // (Zeile 165, 166, 210 und 211).
+    for (let i = 0; i < 8; i++) {
+      setz(f, zeile - 4, spalte - 3 * fa + i, 239);
+      setz(f, zeile + 5, spalte - 3 * fa + i, 239);
+    }
+    const wand = spalte + 8 - 12 * fa;                 // Spalte 8 oder 31
+    setz(f, zeile - 4, wand, 128 + fa * 123);          // Ecke oben: 128 oder 251
+    setz(f, zeile + 5, wand, 247 + fa);                // Ecke unten: 247 oder 248
+    for (let dz = -3; dz <= 4; dz++) setz(f, zeile + dz, wand, 240);
+    setz(f, zeile, wand, 248 - fa);                    // 248 oder 247
+    setz(f, zeile + 1, wand, 251 - 123 * fa);          // 251 oder 128
+  });
+
+  // Muehlen und die uebrigen Maerkte, Zeile 420 bis 423 und 53: erst die des
+  // Verteidigers in den Spalten 25 bis 38, dann die des Angreifers in den
+  // Spalten 0 bis 13.
+  const imLand = fa => {
+    for (let versuch = 0; versuch < 2000; versuch++) {
+      const r = int(rnd() * ZEILEN);
+      const c = fa ? int(rnd() * 14) : 38 - int(rnd() * 14);
+      if (lies(f, r, c) === LEER && lies(f, r, c + 1) === LEER) return [r, c];
+    }
+    return null;
+  };
+  [verteidiger, angreifer].forEach((s, fa) => {
+    const ar = VERSATZ * fa;                           // Zeile 420: ar=128*fa
     for (let i = 0; i < s.muehlen; i++) {
-      const p = eigenesFeld(); if (!p) break;
-      setz(f, p[0], p[1], T.muehle[0] + versatz); setz(f, p[0], p[1] + 1, T.muehle[1] + versatz);
+      const p = imLand(fa); if (!p) break;
+      setz(f, p[0], p[1], T.muehle[0] + ar); setz(f, p[0], p[1] + 1, T.muehle[1] + ar);
     }
-    for (let i = 0; i < s.maerkte; i++) {
-      const p = eigenesFeld(); if (!p) break;
-      setz(f, p[0], p[1], T.markt[0] + versatz); setz(f, p[0], p[1] + 1, T.markt[1] + versatz);
+    const uebrig = s.maerkte - stadtMaerkte[1 - fa];   // Zeile 422: e(no)-va
+    for (let i = 0; i < uebrig; i++) {
+      const p = imLand(fa); if (!p) break;
+      setz(f, p[0], p[1], T.markt[0] + ar); setz(f, p[0], p[1] + 1, T.markt[1] + ar);
     }
-  }
+  });
 
   // Fluesse, Baeume und Buschwerk, Zeile 424-429. Fuenf Durchgaenge, in
   // jedem ein Lauf vom linken und einer vom rechten Rand: zehn Fluesse.
@@ -482,6 +523,13 @@ function marschieren(f, r, kopfStart, seite, gattung, eigen, gegner, rnd, zustan
     weite--;
   };
 
+  // Der Schritt aus Zeile 168 und 169 (213 und 216) samt Landzaehlung.
+  const nachruecken = probe => {
+    vorruecken(probe);
+    bildAbschliessen(f);
+    if (zeile.ueberGrenze) landZaehler(zustand.landGewinnProFeld[seite]);
+  };
+
   // Zeile 170 bricht bei b<=0 ab, Zeile 217 aber erst bei b<0: der
   // Verteidiger marschiert mit genau null Stosskraft noch weiter.
   const laeuftNoch = () => (istA ? b > 0 : b >= 0);
@@ -503,7 +551,10 @@ function marschieren(f, r, kopfStart, seite, gattung, eigen, gegner, rnd, zustan
       // Ohne diese Unterscheidung geraet das zweite Grenzzeichen in den
       // Wall-Zweig und verdoppelt dort die Stosskraft. Das traf zwei von drei
       // Zeilen und hat jede Schlacht verzerrt.
-      if (istGrenze(d) && probe > 14 && probe < 26) {
+      // Geprueft wird die Spalte der Einheit selbst, nicht die des Feldes
+      // davor: j-y>14 und j-y<26 beim Angreifer, y-j>13 und y-j<25 beim
+      // Verteidiger. Beides heisst Spalte 15 bis 25.
+      if (istGrenze(d) && kopf > 14 && kopf < 26) {
         zeile.ueberGrenze = true;
         vorruecken(probe);
         landZaehler(zustand.landGewinnProFeld[seite]);
@@ -536,6 +587,11 @@ function marschieren(f, r, kopfStart, seite, gattung, eigen, gegner, rnd, zustan
             b -= c7; zeile.z = 0;
             zustand.ereignisse.push({ art: 'zweikampf', zeile: r, sieger: seite, verloren: feind.gattung });
             bildAbschliessen(f);
+            // Zeile 179 und 226 springen nach 168 und 213: der Sieger rueckt
+            // auf das freie Feld vor, BEVOR Zeile 170 seine Stosskraft
+            // prueft. Auch wer sich im Zweikampf verausgabt hat, macht also
+            // diesen einen Schritt noch und gewinnt dabei Land.
+            nachruecken(probe);
             continue;
           }
           zustand.verluste[eigenIdx][gattung]++;
@@ -556,13 +612,16 @@ function marschieren(f, r, kopfStart, seite, gattung, eigen, gegner, rnd, zustan
           if (b < 0) return;
           const rechtsTeil = basis === T.markt[1] || basis === T.muehle[1] || basis === T.marktGross[1];
           const start = rechtsTeil ? probe - 1 : probe;
-          setz(f, r, start, T.ruine[0] + gegnerVersatz);
-          setz(f, r, start + 1, T.ruine[1] + gegnerVersatz);
+          // Zeile 182 schreibt 225 und 226, Zeile 229 schreibt 97 und 98:
+          // die Brandstaette traegt die Farbe dessen, der sie gelegt hat.
+          setz(f, r, start, T.ruine[0] + eigenerVersatz);
+          setz(f, r, start + 1, T.ruine[1] + eigenerVersatz);
           if (istMuehle) zustand.gebaeude[gegnerIdx].muehlen++;
           else zustand.gebaeude[gegnerIdx].maerkte++;
           zeile.z = 0;
           zustand.ereignisse.push({ art: 'brand', zeile: r, was: istMuehle ? 'muehle' : 'markt', opfer: gegnerIdx });
           bildAbschliessen(f);
+          nachruecken(probe);                 // Zeile 182 und 229: GOTO168, GOTO213
           continue;
         }
 
@@ -577,18 +636,26 @@ function marschieren(f, r, kopfStart, seite, gattung, eigen, gegner, rnd, zustan
         }
 
         if (istGrenze(d)) {
-          // Graben um die Hauptstadt, Zeile 165 und 183 beim Angreifer, 210
-          // und 230 beim Verteidiger. Er gilt nur tief im Feindesland: der
-          // Angreifer ab Spalte 26, der Verteidiger bis Spalte 14.
-          const imFeindesland = istA ? probe > 25 : probe < 15;
-          if (!imFeindesland) { vorruecken(probe); bildAbschliessen(f); continue; }
-          zeile.z += b;
-          b = 2 * zeile.z - 0.4;
-          if (b < 0) return;
-          setz(f, r, probe, LEER);
-          bildAbschliessen(f);
-          zeile.z = 0;
-          continue;
+          // Die Mauer um die Hauptstadt, Zeile 165 und 166 beim Angreifer,
+          // 210 und 211 beim Verteidiger. Sie gilt nur tief im Feindesland:
+          // steht die Einheit beim Angreifer jenseits von Spalte 25, beim
+          // Verteidiger diesseits von Spalte 15. Die eigene Mauer und alles
+          // davor ueberlaeuft man wie leeres Feld.
+          const imFeindesland = istA ? kopf > 25 : kopf < 15;
+          if (imFeindesland) {
+            // Die senkrechte Linie laesst sich durchbrechen, die Ecken und
+            // die Laengsseiten nicht.
+            const durchbrechbar = istA ? [240, 128, 247] : [240, 248, 251];
+            if (!durchbrechbar.includes(d)) return;          // Zeile 166 und 211
+            zeile.z += b;
+            b = 2 * zeile.z - 0.4;                           // Zeile 183 und 230
+            if (b < 0) return;
+            setz(f, r, probe, LEER);
+            bildAbschliessen(f);
+            zeile.z = 0;
+            nachruecken(probe);                              // GOTO168, GOTO213
+            continue;
+          }
         }
         // Das Original kennt keine Sperre an eigenen Gebaeuden: Zeile 168
         // laeuft ueber alles hinweg, was keine der Pruefungen 163 bis 167
@@ -626,36 +693,47 @@ function artillerie(f, r, c, seite, eigen, gegner, rnd, zustand) {
     const gehoertGegner = (d >= VERSATZ) !== istA;
     const e = gattungVonZeichen(d);
 
+    // Ein Einschlag hinterlaesst einen Krater (126, 127), Zeile 57 und 58.
+    const krater = start => { setz(f, r, start, 126); setz(f, r, start + 1, 127); };
+    // Zeile 193 bis 196 und 241 bis 244: beide Seiten schreiben 225 und 226.
+    const brandstaette = start => { setz(f, r, start, 225); setz(f, r, start + 1, 226); };
+
     if (e) {
       // Zeile 59 bis 66: der Treffer wird gezaehlt, ganz gleich wem die
       // Einheit gehoert. Die Artillerie schiesst blind 16 bis 21 Felder weit
       // und trifft dabei auch die eigene Kavallerie, die schon vorgerueckt
-      // ist. Die Moral kostet nur ein Treffer auf den Gegner (Zeile 200).
+      // ist.
       const opferIdx = e.seite === 'angreifer' ? 0 : 1;
       zustand.verluste[opferIdx][e.gattung]++;
-      const start = e.rechts ? ziel - 1 : ziel;
-      setz(f, r, start, T.ruine[0] + (istA ? 0 : VERSATZ));
-      setz(f, r, start + 1, T.ruine[1] + (istA ? 0 : VERSATZ));
-      if (e.seite !== seite) gegner.moral -= 0.02;
+      krater(e.rechts ? ziel - 1 : ziel);
+      // Die Moral kostet nur ein Treffer auf den Gegner, und die beiden
+      // Zeilen sind nicht gleich: Zeile 200 nennt alle vier Gattungen des
+      // Verteidigers, Zeile 248 beim Angreifer nur 231 bis 234, also
+      // Infanterie und Miliz. Trifft der Verteidiger Kavallerie oder
+      // Artillerie, bleibt die Moral des Angreifers unberuehrt.
+      const kostetMoral = e.seite !== seite &&
+        (istA || e.gattung === 'infanterie' || e.gattung === 'miliz');
+      if (kostetMoral) gegner.moral -= 0.02;
       zustand.ereignisse.push({
         art: e.seite === seite ? 'eigenbeschuss' : 'treffer',
         zeile: r, gattung: e.gattung, opfer: e.seite
       });
     } else if (gehoertGegner && (basis === T.markt[0] || basis === T.markt[1] || basis === T.marktGross[0] || basis === T.marktGross[1])) {
       zustand.gebaeude[gegnerIdx].maerkte++;
-      const start = (basis === T.markt[1] || basis === T.marktGross[1]) ? ziel - 1 : ziel;
-      setz(f, r, start, T.ruine[0] + (d >= VERSATZ ? VERSATZ : 0));
-      setz(f, r, start + 1, T.ruine[1] + (d >= VERSATZ ? VERSATZ : 0));
+      brandstaette((basis === T.markt[1] || basis === T.marktGross[1]) ? ziel - 1 : ziel);
     } else if (gehoertGegner && (basis === T.muehle[0] || basis === T.muehle[1])) {
       zustand.gebaeude[gegnerIdx].muehlen++;
-      const start = basis === T.muehle[1] ? ziel - 1 : ziel;
-      setz(f, r, start, T.ruine[0] + (d >= VERSATZ ? VERSATZ : 0));
-      setz(f, r, start + 1, T.ruine[1] + (d >= VERSATZ ? VERSATZ : 0));
-    } else if (istGrenze(d)) {
-      // Zeile 197 und 245: nur die Grabenkacheln fliegen weg, Fluesse bleiben
-      // stehen. Sonst liesse sich ein Flusslauf freischiessen, der im
+      brandstaette(basis === T.muehle[1] ? ziel - 1 : ziel);
+    } else if ((istA ? [240, 247, 128] : [240, 248, 251]).includes(d)) {
+      // Zeile 197 und 245: nur diese drei Mauer- und Grenzzeichen fliegen
+      // weg. Die Ecken und Laengsseiten der Mauer bleiben stehen, ebenso die
+      // Fluesse; sonst liesse sich ein Flusslauf freischiessen, der im
       // Original dauerhaft Stosskraft kostet.
       setz(f, r, ziel, LEER);
+    } else if (d === 108 || d === 118 || (d === LEER && lies(f, r, ziel - 1) === LEER)) {
+      krater(ziel - 1);                   // Zeile 59: Baum (rechte Haelfte) oder freies Feld
+    } else if (d === 107 || d === 117 || (d === LEER && lies(f, r, ziel + 1) === LEER)) {
+      krater(ziel);                       // Zeile 60: Baum (linke Haelfte) oder freies Feld
     } else {
       const p = gebaeudeTreffer(basis);
       if (p && gehoertGegner) {

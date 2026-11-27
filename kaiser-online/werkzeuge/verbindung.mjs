@@ -47,7 +47,7 @@ export function anmelden(name, kennwort = 'werkzeug', { still = false } = {}) {
           fehlgeschlagen(new Error('Anmeldung fehlgeschlagen: ' + (n.text || 'unbekannt')));
         }
       } else if (n.typ === 'fehler' && !still) {
-        console.log(`  ! ${name}: ${n.text}`);
+        console.log(`  ! ${name}: ${String(n.text).replace(/[\x00-\x1f\x7f]/g, ' ')}`);
       }
     });
     setTimeout(() => fehlgeschlagen(new Error('Zeitüberschreitung bei der Anmeldung')), 10000);
@@ -64,9 +64,11 @@ export async function lobbyHolen(c) {
 
 /** Legt eine Runde an oder tritt der vorhandenen mit diesem Namen bei. */
 /**
- * Tritt einer Runde bei. Das Fuerstentum richtet sich nach der Reihenfolge,
- * es laesst sich nicht waehlen; wer eine bestimmte Nachbarschaft braucht,
- * laesst die Werkzeuge in der passenden Reihenfolge beitreten.
+ * Tritt einer Runde bei. Das Fuerstentum laesst sich nicht waehlen und haengt
+ * auch nicht an der Reihenfolge: es wird beim Start aus dem Startwert der
+ * Runde verlost. Welche Nachbarschaft eine Demorunde bekommt, steht also
+ * erst nach dem Start fest; liegen zwei Laender nicht nebeneinander, fuehrt
+ * der Angriffsweg ueber Dritte.
  */
 export async function rundeBetreten(c, rundenName, { weiblich, planungsSekunden, diplomatieSekunden } = {}) {
   await lobbyHolen(c);          // sonst arbeitet man mit einer veralteten Sicht

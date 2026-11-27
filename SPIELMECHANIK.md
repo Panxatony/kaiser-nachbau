@@ -66,6 +66,24 @@ Nachbau in `kaiser-online/` mit der Architektur in `kaiser-online/ARCHITEKTUR.md
 | `b8`   | Jahr, bis zu dem der Spieler suspendiert ist | 1700 |
 | Name, Geschlecht (m/w), Region                 | Eingabe |
 
+**Vorbehalt zu Einwohnern und Korn.** Zeile 876 setzt beide nicht selbst,
+sondern ruft `GOSUB801:GOSUB800`, und dort hängen sie an einem Schalter:
+
+```
+800 p(c)=10000-ABS(PEEK(767)=0)*10000:RETURN
+801 c(c)=2000-ABS(PEEK(767)=0)*1000:RETURN
+```
+
+Steht in Speicherstelle 767 etwas, sind es 10.000 Maß und 2.000 Einwohner; steht
+dort null, sind es **0 Maß und 1.000 Einwohner**. Im Emulator nachgesehen
+(27.11.2026): der Vorspann des bearbeiteten Abbilds setzt 767 auf `$80`, das
+Spiel startet also mit den Werten der Tabelle, und so tut es auch der Nachbau.
+Die Zeilen 800 bis 805 liegen aber in einer Lücke der Nummerierung und stammen
+erkennbar vom Bearbeiter; an demselben Schalter hängt in Zeile 804 eine
+Warteschleife („keine langen wartezeiten"). Welche Werte die unbearbeitete
+Diskette hatte, lässt sich aus diesem Abbild nicht beweisen. Das Handbuch
+nennt keine.
+
 Globaler Zustand: Jahr `ze` (Start 1700), Spielerzahl 1–9.
 Regionen nach Spielerindex: 1 Preußen, 2 Hessen, 3 Bayern, 4 Böhmen, 5 Sachsen,
 6 Mähren, 7 Tirol, 8 Die Pfalz, 9 Flandern.
@@ -216,7 +234,10 @@ Titel > 6 braucht Palast = 16; Titel > 7 braucht Kathedrale ≥ 14, Mühlen ≥ 
 Titel 8 → 9 braucht Kasse ≥ 100000. Titel 9 = **Kaiser = Spielsieg**
 (Name wird als "letzter Kaiser des HRR" gespeichert).
 
-**Zeitstrafe**: Dauert der Zug ≥ 120 s, `k −= 1..3` (min `ze+1`).
+**Zeitstrafe**: Dauert der Zug 1 Minute 20 Sekunden oder länger, `k −= 1..3` (min `ze+1`).
+Zeile 609 prüft `VAL(ti$)<120`, und `ti$` hat die Form HHMMSS: 120 heißt
+also 1:20, nicht 120 Sekunden. Der Nachbau hat die Strafe nicht; an ihrer
+Stelle stehen die Fristen der Phasen.
 
 **Aufstellung**: Der Cursor ist zweidimensional beweglich (Zeile 368, 370, 384,
 385). Startplatz ist Spalte 13 für den Angreifer und 26 für den Verteidiger,
@@ -342,9 +363,20 @@ Durchmarsch/Neutral zurückgestuft. Gibt es keinen Weg: "Alle Wege versperrt", K
 ### 4.3 Schlachtfeld
 
 Raster 76 Zeilen × 40 Spalten (scrollbar). Links Angreifer, rechts Verteidiger, dazwischen
-eine mäandernde Grenze um Spalte 19–21. Pro Seite werden gezeichnet: Palast (ab 5 bzw. 11
-Teilen größer), Kathedrale (ab 1/6/11 Teilen), Märkte (pro Markt ein Symbol), Mühlen,
-zufällig Bäume, Ruinen, Flüsse.
+eine mäandernde Grenze um Spalte 19–21. Pro Seite werden gezeichnet (404–423):
+
+- **Hauptstadt** am Rand (Spalte 0 bzw. 35), zufällige Zeile 4–70. Das H trägt den Code 72.
+- **Palast** darüber: ab 5 Teilen vier Zeichen (60, 61, 34, 35), ab 11 Teilen zwei weitere
+  (62, 36). **Kathedrale** darunter ab 1/6/11 Teilen. Beim Verteidiger zwei Spalten weiter
+  rechts (`+2*fa`), beim Angreifer alle Codes +128.
+- **Märkte der Stadt** (413–416): drei Versuche für einen großen Markt (29, 30), fünfzehn für
+  einen kleinen (27, 28), im Umkreis der Hauptstadt — unabhängig davon, wie viele Märkte der
+  Fürst besitzt. Erst Zeile 422 zieht sie von den übrigen ab.
+- **Mauer um die Hauptstadt** (417–419): oben und unten je acht Zeichen 239, zur Grenze hin
+  eine senkrechte Linie in Spalte 8 bzw. 31 (240, auf Höhe der Stadt 248/251 bzw. 247/128)
+  mit zwei Ecken (128 und 247 bzw. 251 und 248).
+- **Mühlen und übrige Märkte** (420–423): zufällig in den Spalten 0–13 bzw. 25–38.
+- Zehn Flüsse, 110 Versuche für Bäume, 60 für Buschwerk (424–429).
 
 **Aufstellung**: Die Seite mit mehr Soldaten stellt zuerst, bis Gleichstand, dann
 abwechselnd je eine Einheit. Angreifer stellt in Spalte 13, Verteidiger in Spalte 26,
@@ -357,18 +389,31 @@ pro Zeile marschieren Kavallerie und Infanterie auf den Gegner zu, Artillerie sc
 19 bzw. 13 Felder, Momentum `z = 0` pro Zeile. Je Feld:
 - Baum: `b *= 0.95` (Ruinen **nicht**, Zeile 68 nennt nur die Baumpaare); Fluss: `b *= 0.6`.
 - Gegnerische Einheit: Verteidigungswert `c7 = o_gegner · {Inf 1, Miliz 1.5, Kav 5, Art 0.6}`.
-  Wenn `RND·(c7 + b + z) > c7`: Gegner vernichtet, `b −= c7`, `z = 0`, weiter.
+  Wenn `RND·(c7 + b + z) > c7`: Gegner vernichtet, `b −= c7`, `z = 0`, und die Einheit rückt
+  auf das freie Feld vor, **bevor** die Stoßkraft geprüft wird (179 → 168 → 170).
   Sonst: eigene Einheit vernichtet, `z += b` (nächste Einheit derselben Zeile profitiert), Ende.
 - Markt/Mühle: `z += b; b = z − 0.3 − (Mühle ? 0.25 : 0)`; wenn `b < 0`: Halt, sonst Gebäude → Ruine, `z = 0`.
-- Grenzwall/Fluss jenseits der Grenze: `z += b; b = 2z − 0.4`; wenn `b < 0`: Halt.
+- **Mauer der feindlichen Hauptstadt** (165/166, 210/211), nur wenn die Einheit selbst schon
+  jenseits von Spalte 25 (Angreifer) bzw. diesseits von Spalte 15 (Verteidiger) steht:
+  die Linie (Angreifer: 240, 128, 247; Verteidiger: 240, 248, 251) lässt sich durchbrechen,
+  `z += b; b = 2z − 0.4`; wenn `b < 0`: Halt. Ecken und Längsseiten (239 und die jeweils
+  anderen drei Codes) sind **unüberwindlich**: Halt. Die eigene Mauer überläuft man.
+- Die Grenze selbst kostet nichts; sie setzt nur die Marke für den Landgewinn (162, 207).
 - Palast-/Kathedralenteil: Schaden `2·b/2` (Palast) bzw. `2·b/3` (Kathedrale) Teile, Halt.
 - Nach Überschreiten der Grenze bringt jedes weitere Feld `INT(Land_gegner/800)` ha Landgewinn.
 - Ende bei Reichweite 0, `b ≤ 0` oder Spielfeldrand.
 
 **Artillerie** (186–202): `b = min(1.5, o)`; je Schuss trifft ein zufälliges Feld
-16–21 Felder entfernt in derselben Zeile: Einheit vernichtet (Gegnermoral −0.02),
-Markt/Mühle → Ruine, Palast/Kathedrale −1 Teil, Wall gesprengt (Fluesse bleiben stehen, Zeile 197 und 245). Danach `b −= 0.3`,
-solange `b > 0` weiter (max. 5 Schuss).
+16–21 Felder entfernt in derselben Zeile: Einheit vernichtet (auch die eigene, 59–66),
+Markt/Mühle → Brandstätte, Palast/Kathedrale −1 Teil. Von Mauer und Grenze fliegen nur je
+drei Zeichen weg (Angreifer: 240, 247, 128; Verteidiger: 240, 248, 251; Zeile 197 und 245),
+Flüsse bleiben stehen. Ein Treffer auf freies Feld oder einen Baum hinterlässt einen Krater
+(126, 127), der Baum ist danach weg. Danach `b −= 0.3`, solange `b > 0` weiter (max. 5 Schuss).
+
+Die **Moral** kostet nur ein Treffer auf den Gegner, und die beiden Seiten sind nicht
+gleich: Zeile 200 nennt alle vier Gattungen des Verteidigers, Zeile 248 beim Angreifer nur
+die Codes 231–234, also Infanterie und Miliz. Trifft der Verteidiger Kavallerie oder
+Artillerie, bleibt die Moral des Angreifers unberührt.
 
 ### 4.4 Abrechnung (303–352)
 
@@ -400,7 +445,7 @@ Rückmeldung bekommt (Geburten, Einwanderer, Einnahmen, Gebäudeverlust):
 
 | Schritt                                   | Zeitpunkt |
 |-------------------------------------------|-----------|
-| Wetter, Ernte, Preise (3.1)               | Rundenstart, pro Spieler gewürfelt |
+| Wetter, Ernte, Preise (3.1)               | Rundenstart, pro Spieler gewürfelt; in der Fassung 2026 gelten Wetter und Fäule im ganzen Reich |
 | Markt (3.2)                               | Planung, sofort |
 | Kornverteilung + Bevölkerung (3.3)        | Planung, sofort (Zufall serverseitig) |
 | Gebäudeeinnahmen, Sold (3.4)              | Planung, sofort |
@@ -475,7 +520,7 @@ Manuelle Aufstellung (Phase B) kann später ergänzt werden.
 - **Push**: WebSocket (z.B. Node/TypeScript mit Socket.IO oder Python/FastAPI) für
   Phasenwechsel, "Spieler X ist fertig", Jahresbericht.
 - **Persistenz**: Spielstand nach jeder Phase speichern (Reconnect, Spiele über Tage).
-- **Zeitstrafe und Zinsen**: `k`-Strafe (120 s) durch Phasen-Timer ersetzen; Zinsen
+- **Zeitstrafe und Zinsen**: `k`-Strafe (ab 1:20 Zugdauer) durch Phasen-Timer ersetzen; Zinsen
   (Kasse × 1,1) beibehalten oder nur auf positive Kasse anwenden.
 - **Bekannte Eigenheiten des Originals** (bewusst entscheiden, ob übernehmen):
   Mühlenkauf setzt `n = n/4` statt `n += 1`; Miliz nach dem Krieg nur aus Märkten;

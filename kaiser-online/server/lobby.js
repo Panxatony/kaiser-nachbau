@@ -95,7 +95,7 @@ export class Lobby {
 
     const e = spiel.beitreten({ id: konto.name, name: konto.name, weiblich });
     if (e.fehler) return e;
-    return { spiel, region: REGIONEN[e.spieler.region] };
+    return { spiel };
   }
 
   /** Nimmt ein Konto aus einer Runde. Leere Runden werden entfernt. */
@@ -138,10 +138,10 @@ export class Lobby {
       spielerzahl: spiel.spieler.length,
       maxSpieler: MAX_SPIELER,
       spieler: spiel.spieler.map(s => ({
-        name: s.name, region: REGIONEN[s.region], titel: s.titel, selbst: s.name === konto.name
+        name: s.name, titel: s.titel, selbst: s.name === konto.name,
+        // Vor dem Start ist das Fuerstentum noch nicht verlost
+        region: spiel.gestartet || s.regionFest ? REGIONEN[s.region] : null
       })),
-      // Welches Fuerstentum der naechste Beitretende bekommt
-      naechsteRegion: REGIONEN[spiel.offeneRegionen.length ? spiel.offeneRegionen[0].index : 0],
       dabei: !!spiel.spielerVon(konto.name),
       beitretbar: !spiel.gestartet && spiel.spieler.length < MAX_SPIELER
     };

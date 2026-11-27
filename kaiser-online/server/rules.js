@@ -93,11 +93,49 @@ export function kornBedarf(s) {
 }
 
 /**
+ * Das Jahr im ganzen Reich: ein Wetter und eine Faeule fuer alle. Wird einmal
+ * je Runde gewuerfelt, mit denselben Formeln wie in Zeile 466 und 470. Ob und
+ * wie stark es gilt, bestimmt das Regelwerk, siehe ernte().
+ */
+export function reichsJahr(rnd) {
+  return { wetter: int(rnd() * 5 + 1), verfault: int(rnd() * 50 + 1) };
+}
+
+/**
+ * Das Wetter eines Fuersten, wenn im Reich ein gemeinsames Wetter gilt.
+ *
+ * Mit der Wahrscheinlichkeit `abweichung` liegt es eine Stufe neben dem des
+ * Reiches, je zur Haelfte darueber und darunter; sonst ist es dasselbe. An
+ * den Raendern bleibt es stehen (schlechter als 1 und besser als 5 gibt es
+ * nicht).
+ *
+ * Wichtig ist, was dabei NICHT geschieht: die Verteilung des Wetters bleibt
+ * gleichmaessig von 1 bis 5, wie im Original. Ein Mittelwert aus Reich und
+ * eigenem Wurf haette die Extreme selten gemacht (1 und 5 je 8 statt 20
+ * Prozent) und das Spiel damit heimlich erleichtert -- gemessen stieg der
+ * mittlere Titel nach 50 Jahren von 5,8 auf 7,6.
+ *
+ * u ist der eigene Wurf aus Zeile 466, eine Zahl in [0, 1). Er wird nur
+ * anders gelesen, nicht zusaetzlich gezogen.
+ */
+export function wetterImReich(reich, u, abweichung) {
+  if (u < abweichung / 2) return Math.max(1, reich - 1);
+  if (u >= 1 - abweichung / 2) return Math.min(5, reich + 1);
+  return reich;
+}
+
+/**
  * Ernte, Kornpreis und Landpreis zu Rundenbeginn, Zeile 466-472.
  * Liefert die Marktlage des Spielers fuer diese Runde.
+ *
+ * reich ist das Jahr im ganzen Reich, siehe reichsJahr(). Die eigenen Wuerfe
+ * finden in jedem Fall statt, damit der Zufallsstrom derselbe bleibt.
  */
-export function ernte(s, rnd, regeln = STANDARD) {
-  const wetter = int(rnd() * 5 + 1);                 // c5, 1..5
+export function ernte(s, rnd, regeln = STANDARD, reich = null) {
+  const u = rnd();
+  const wetter = regeln.wetterImReich && reich
+    ? wetterImReich(reich.wetter, u, regeln.wetterAbweichung ?? 0)
+    : int(u * 5 + 1);                                // c5, 1..5
   let d = s.land;
   const b1 = Math.max(0, (s.einwohner - s.muehlen * 100) * 5);
   if (b1 < d) d = b1;
@@ -115,7 +153,8 @@ export function ernte(s, rnd, regeln = STANDARD) {
   let landpreis = (3 * wetter + 12 + rnd() * 12) / 10;
   landpreis = int(10 * landpreis * verhaeltnis) / 10;
 
-  const verfault = int(rnd() * 50 + 1);
+  const eigeneFaeule = int(rnd() * 50 + 1);
+  const verfault = regeln.faeuleImReich && reich ? reich.verfault : eigeneFaeule;
   s.korn = int(s.korn * (1 - verfault / 100));
 
   let kornpreis = int((20 - 3 * wetter + rnd() * 10) * 8 * verhaeltnis);

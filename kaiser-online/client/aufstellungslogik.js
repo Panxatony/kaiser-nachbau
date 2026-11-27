@@ -165,8 +165,10 @@ export function anzeigeFeld(z) {
     for (const e of liste) {
       const c = e.spalte ?? standard;
       const [links, rechts] = zeichenPaar(e.gattung, angreifer);
-      feld[e.zeile * SPALTEN + c] = links;
-      feld[e.zeile * SPALTEN + c + 1] = rechts;
+      const stelle = (e.zeile * SPALTEN + c) >>> 0;
+      if (stelle + 1 >= feld.length) continue;      // ausserhalb des Feldes: uebergehen
+      feld[stelle] = links;
+      feld[stelle + 1] = rechts;
     }
   };
   setzen(z.gegnerAufstellung || [], z.gegnerSpalte, !z.istAngreifer);

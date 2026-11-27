@@ -3,9 +3,9 @@
 // "Original 1984" ist der Nachbau, Zeile für Zeile aus dem BASIC. So hat das
 // Spiel sich damals angefuehlt, mitsamt seinen Eigenheiten.
 //
-// "Fassung 2026" aendert sieben Stellen, an denen Messungen gezeigt haben, dass
+// "Fassung 2026" aendert acht Stellen, an denen Messungen gezeigt haben, dass
 // das Spiel seine Spannung verliert. Jede Aenderung steht unten mit dem Befund,
-// der zu ihr gefuehrt hat. Alles andere bleibt, wie es war: Wetter, Ernte,
+// der zu ihr gefuehrt hat. Alles andere bleibt, wie es war: Ernte,
 // Kornkreislauf, Bevoelkerung, die zwoelf Kennzahlen des Titelaufstiegs und das
 // gemeinsame Todesjahr sind in beiden Fassungen gleich.
 
@@ -25,13 +25,16 @@ export const REGELWERKE = {
     sockelverlust: 0,
     landJeFuerst: 0,           // 0 heisst: Land entsteht aus dem Nichts
     titelVermoegen: false,
-    titelSchwelle: 0          // 0 heisst: fester Betrag von 9.999 Talern
+    titelSchwelle: 0,         // 0 heisst: fester Betrag von 9.999 Talern
+    wetterImReich: false,     // jeder Fuerst wuerfelt sein eigenes Wetter
+    wetterAbweichung: 0,
+    faeuleImReich: false
   },
 
   neu: {
     id: 'neu',
     name: 'Fassung 2026',
-    kurz: 'Sieben Regeln geändert, damit Geld knapp bleibt und Kriege ein Wagnis sind.',
+    kurz: 'Acht Regeln geändert, damit Geld knapp bleibt, Kriege ein Wagnis sind und das Wetter für alle dasselbe ist.',
 
     /**
      * 1. Zinsen nur auf Kapital bis zur Bonitaet.
@@ -163,7 +166,43 @@ export const REGELWERKE = {
      * auf 1740; er wird gebremst, aber nicht aufgehalten.
      */
     titelVermoegen: true,
-    titelSchwelle: 10000
+    titelSchwelle: 10000,
+
+    /**
+     * 8. Ein Wetter fuer das ganze Reich, mit gelegentlicher Abweichung.
+     *
+     * Befund: im Original wuerfelt jeder Fuerst sein Wetter und seine Faeule
+     * fuer sich (Zeile 466 und 470). Zwei Fuersten mit derselben Strategie
+     * liegen nach 50 Jahren im Mittel 3,2 Titelstufen auseinander, und in 43
+     * Prozent der Runden sind es vier Stufen oder mehr. Das entscheidet der
+     * Wuerfel, nicht das Spiel.
+     *
+     * Hier gilt ein Wetter im ganzen Reich. In einem von fuenf Jahren liegt
+     * das Wetter eines Fuersten eine Stufe daneben, je zur Haelfte besser und
+     * schlechter -- so wie es zwischen Nachbarlaendern auch ist. Die Faeule
+     * im Kornspeicher ist fuer alle dieselbe.
+     *
+     * Gemessen mit werkzeuge/wettermessung.mjs, 300 Runden zu 50 Jahren:
+     *
+     *   Abweichung        Titelabstand   >= 4 Stufen   Titel im Mittel
+     *   Original (eigen)          3,22          43 %              5,86
+     *   nie                       1,09           6 %              5,73
+     *   1 von 5 Jahren            1,49          12 %              5,74
+     *   1 von 3 Jahren            1,71          17 %              5,69
+     *   1 von 2 Jahren            1,80          18 %              5,67
+     *
+     * Die letzte Spalte ist die Gegenprobe: das Spiel wird dadurch weder
+     * leichter noch schwerer, nur gerechter. Ein frueherer Entwurf mischte
+     * das Wetter des Reiches mit dem eigenen Wurf; das machte die Extreme
+     * selten und hob den mittleren Titel auf 7,6. Die Abweichung um eine
+     * Stufe laesst die Verteilung von 1 bis 5 dagegen genau, wie sie ist.
+     *
+     * Bleibt die Faeule je Fuerst, steigt der Abstand bei 1 von 3 wieder von
+     * 1,71 auf 2,07 -- darum gilt auch sie im ganzen Reich.
+     */
+    wetterImReich: true,
+    wetterAbweichung: 0.2,
+    faeuleImReich: true
   }
 };
 

@@ -113,7 +113,7 @@ test('Runde anlegen und beitreten', () => {
   assert.equal(e.spiel.spieler.length, 2);
 });
 
-test('Die Lobbyübersicht zeigt Plätze und das nächste Fürstentum', () => {
+test('Die Lobbyübersicht zeigt Plätze, aber vor dem Start kein Fürstentum', () => {
   const { l, k, anna, bert } = aufbau();
   const e = l.anlegen('Abendrunde', { von: anna.name });
   l.beitreten(e.spiel.id, anna, {});
@@ -126,7 +126,8 @@ test('Die Lobbyübersicht zeigt Plätze und das nächste Fürstentum', () => {
   assert.equal(fuerAnna.beitretbar, true);
   assert.equal(fuerAnna.spieler.find(s => s.name === 'ANNA').selbst, true);
   assert.equal(fuerAnna.spieler.find(s => s.name === 'BERT').selbst, false);
-  assert.equal(fuerAnna.naechsteRegion, 'BAYERN', 'der dritte Platz ist Bayern');
+  assert.equal(fuerAnna.naechsteRegion, undefined, 'niemandem wird ein Land versprochen');
+  assert.ok(fuerAnna.spieler.every(s => s.region === null), 'verlost wird erst beim Start');
 });
 
 test('Wer nicht dabei ist, sieht die Runde als beitretbar', () => {
@@ -171,27 +172,36 @@ test('Die letzte Person, die geht, räumt die Runde weg', () => {
   assert.equal(l.spiel(e.spiel.id), null, 'leere Runde verschwindet');
 });
 
-test('Das Fürstentum richtet sich nach der Sitzreihenfolge', () => {
-  // Wie im Original, Zeile 869 bis 878: Spieler 1 Preussen, Spieler 2 Hessen.
-  // Gewaehlt wird nichts, ein Wunsch aus dem Client wird nicht beachtet.
-  const { l, anna, bert } = aufbau();
+test('Vor dem Start steht kein Fürstentum fest, ein Wunsch wird nicht beachtet', () => {
+  // Das Original vergibt nach Sitzreihenfolge (Zeile 869 bis 878). Hier wird
+  // beim Start verlost; gewaehlt wird weiterhin nichts.
+  const { l, k, anna, bert } = aufbau();
   const e = l.anlegen('Abendrunde');
   const a = l.beitreten(e.spiel.id, anna, { region: 3 });
-  const b = l.beitreten(e.spiel.id, bert, { region: 3 });
-  assert.equal(a.region, 'PREUSSEN');
-  assert.equal(b.region, 'HESSEN');
-  assert.deepEqual(e.spiel.spieler.map(s => s.region), [0, 1]);
+  l.beitreten(e.spiel.id, bert, { region: 3 });
+  assert.equal(a.region, undefined, 'der Beitritt verspricht kein Land');
+  assert.ok(e.spiel.spieler.every(s => !s.regionFest), 'der Wunsch aus dem Client zaehlt nicht');
+  const runde = l.sicht(k.oeffentlich(anna)).runden[0];
+  assert.deepEqual(runde.spieler.map(s => s.region), [null, null]);
 });
 
-test('Wird ein Platz frei, faellt er dem naechsten Beitretenden zu', () => {
+test('Beim Start bekommt jeder ein eigenes Fürstentum und erfährt es', () => {
   const { l, k, anna, bert, cleo } = aufbau();
   const e = l.anlegen('Abendrunde');
   l.beitreten(e.spiel.id, anna, {});
   l.beitreten(e.spiel.id, bert, {});
-  assert.equal(e.spiel.spielerVon('BERT').region, 1, 'Hessen');
   l.verlassen(e.spiel.id, bert);
-  const c = l.beitreten(e.spiel.id, cleo, {});
-  assert.equal(c.region, 'HESSEN', 'der freie Platz wird wieder besetzt');
+  l.beitreten(e.spiel.id, cleo, {});
+  e.spiel.starten();
+  const regionen = e.spiel.spieler.map(s => s.region);
+  assert.equal(new Set(regionen).size, 2, 'kein Land doppelt');
+  assert.ok(regionen.every(r => r >= 0 && r <= 8));
+  const runde = l.sicht(k.oeffentlich(anna)).runden[0];
+  assert.ok(runde.spieler.every(s => typeof s.region === 'string'), 'nach dem Start sichtbar');
+  for (const s of e.spiel.spieler) {
+    const m = e.spiel.zustand[s.id].meldungen.map(x => x.text).join(' ');
+    assert.match(m, /Das Los hat entschieden: Sie regieren /);
+  }
 });
 
 test('Meine Runden werden gefunden', () => {

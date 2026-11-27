@@ -12,7 +12,9 @@ canvas{image-rendering:pixelated;border:1px solid #555;background:#000}
 import { Nachspieler, feldZeichnen, ZEILEN, SPALTEN } from './schlachtfeld.js';
 import { zeichensatzBereit } from './schlachtfeld.js';
 // Datei ueber die Adresszeile waehlbar: ?datei=meine_schlacht.json
-const datei = new URLSearchParams(location.search).get('datei') || 'schlacht_probe.json';
+// Nur eine Datei neben dieser Seite, keine fremde Adresse.
+const wunsch = new URLSearchParams(location.search).get('datei') || '';
+const datei = /^[\w-]+(\.[\w-]+)*\.json$/.test(wunsch) ? wunsch : 'schlacht_probe.json';
 let daten;
 try {
   const antwort = await fetch(datei);

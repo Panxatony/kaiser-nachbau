@@ -11,8 +11,8 @@ const Ruhm = await import('../server/ruhmeshalle.js');
 
 function runde(seed = 3) {
   const spiel = new Spiel({ id: 'z', seed, demo: true, planungsSekunden: 0, diplomatieSekunden: 0 });
-  spiel.beitreten({ id: 'p0', name: 'KARL', weiblich: false });
-  spiel.beitreten({ id: 'p1', name: 'MARIA', weiblich: true });
+  spiel.beitreten({ id: 'p0', name: 'KARL', weiblich: false, region: 0 });
+  spiel.beitreten({ id: 'p1', name: 'MARIA', weiblich: true, region: 1 });
   spiel.starten();
   return spiel;
 }
